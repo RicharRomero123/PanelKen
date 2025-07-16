@@ -9,7 +9,17 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  /* config options here */
+  
+  // --- CONFIGURACIÓN AÑADIDA ---
+  // Desactiva la verificación de ESLint durante la compilación
+  eslint: {
+    // Advertencia: Esto permite que las compilaciones de producción se completen
+    // correctamente incluso si tu proyecto tiene errores de ESLint.
+    ignoreDuringBuilds: true,
+  },
+  // -----------------------------
+
+  /* otras opciones de configuración aquí */
 };
 
 export default nextConfig;

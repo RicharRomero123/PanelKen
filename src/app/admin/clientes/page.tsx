@@ -6,7 +6,7 @@ import { getAllClientes, createCliente, updateCliente, deleteCliente } from '../
 import { getAllUsers } from '../../../services/userService'; 
 import { searchCuentas } from '../../../services/cuentaService'; 
 import { getAllServicios } from '../../../services/servicioService';
-import { Plus, Edit, Trash2, X, Search, RefreshCw, AlertTriangle, CheckCircle, User as UserIcon, Mail, Phone, Link as LinkIcon, Users, Star, MessageSquare, FileText, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, RefreshCw, AlertTriangle, CheckCircle, User as UserIcon, Mail, Phone, Link as LinkIcon, Users, FileText, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 import Image from 'next/image';

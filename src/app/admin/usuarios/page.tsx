@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback, FormEvent, useMemo } from 'react';
 // Usamos rutas relativas para máxima compatibilidad
 import { getAllUsers, updateUser, deleteUser } from '../../../services/userService';
 import { register } from '../../../services/authService';
-import { Plus, Edit, Trash2, X, Search, FileDown, Eye, EyeOff, RefreshCw, User as UserIcon, Mail, Phone, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, FileDown, Eye, EyeOff, RefreshCw, User as UserIcon, Mail, Phone, AlertTriangle, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 // --- Librerías para exportar ---

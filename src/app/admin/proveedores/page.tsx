@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, FormEvent, useMemo } from 'react';
 // Usamos rutas relativas para máxima compatibilidad
 import { getAllProveedores, createProveedor, updateProveedor, deleteProveedor } from '../../../services/proveedorService';
 import { useAuth } from '@/context/AuthContext';
-import { Plus, Edit, Trash2, X, Search, RefreshCw, AlertTriangle, CheckCircle, Briefcase, User, Mail, Phone, Link as LinkIcon, DollarSign, Tag, ArrowLeft } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, RefreshCw, AlertTriangle, CheckCircle, Briefcase, Mail, Phone, Link as LinkIcon, DollarSign, Tag, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';

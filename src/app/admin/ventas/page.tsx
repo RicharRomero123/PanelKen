@@ -6,7 +6,7 @@ import { getResumenVentasMensuales, getListaVentasMensuales, getResumenVentasDia
 import { getAllClientes } from '../../../services/clienteService';
 import { getAllServicios } from '../../../services/servicioService';
 import { searchCuentas } from '../../../services/cuentaService';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 import { DollarSign, TrendingUp, Calendar, RefreshCw, ChevronLeft, ChevronRight, ShoppingCart, AlertTriangle, ArrowLeft } from 'lucide-react';

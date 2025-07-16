@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, FormEvent, useMemo } from 'react';
 // Usamos rutas relativas para máxima compatibilidad
 import { getAllServicios, createServicio, updateServicio, deleteServicio } from '../../../services/servicioService';
-import { Plus, Edit, Trash2, X, Search, RefreshCw, Package, AlertTriangle, CheckCircle, Image as ImageIcon, Hash, FileText, UploadCloud } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, RefreshCw, Package, AlertTriangle, CheckCircle, Image as ImageIcon, Hash, UploadCloud } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 import Image from 'next/image'; // Importar el componente Image de Next.js

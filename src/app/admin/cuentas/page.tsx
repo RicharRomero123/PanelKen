@@ -6,7 +6,7 @@ import { getAllServicios } from '../../../services/servicioService';
 import { getAllClientes } from '../../../services/clienteService';
 import { getAllReportes } from '../../../services/reporteCuentaService';
 import { useAuth } from '@/context/AuthContext';
-import { Plus, Edit, Trash2, X, Search, RefreshCw, AlertTriangle, CheckCircle, KeyRound, User as UserIcon, Mail, Calendar, DollarSign, UserPlus, Layers, Repeat, Inbox, FileText, MoreVertical, Eye, Link as LinkIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, RefreshCw, AlertTriangle, CheckCircle, KeyRound , DollarSign, UserPlus, Layers, Repeat, Inbox, FileText, Eye, Link as LinkIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 import Image from 'next/image';

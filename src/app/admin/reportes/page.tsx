@@ -8,10 +8,9 @@ import { getAllUsers } from '../../../services/userService';
 import { getAllClientes } from '../../../services/clienteService';
 import { getAllServicios } from '../../../services/servicioService';
 import { useAuth } from '@/context/AuthContext';
-import { Plus, X, Search, RefreshCw, AlertTriangle, CheckCircle, FileText, User, Mail, Calendar, MessageSquare, Eye, DollarSign, Package, UserIcon, Repeat } from 'lucide-react';
+import { Plus, X, Search, RefreshCw, CheckCircle, FileText, User, Mail, Calendar, MessageSquare, Eye, DollarSign, Package, UserIcon, Repeat } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
-import Image from 'next/image';
 
 // --- Tipos definidos localmente ---
 interface Reporte { id: number; cuentaId: number; usuarioId: number; fecha: string; motivo: string; detalle: string; }

@@ -8,7 +8,7 @@ import { searchCuentas } from '../../../services/cuentaService';
 import { getAllUsers } from '../../../services/userService';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
-import { History, RefreshCw, Search, X, Eye, User, Mail, Calendar, MessageSquare, ArrowRight } from 'lucide-react';
+import { History, RefreshCw, Search, X, Eye, User, Mail, Calendar } from 'lucide-react';
 
 // --- Tipos definidos localmente ---
 interface Historial { id: number; cuentaAnteriorId: number; cuentaNuevaId: number; motivo: string; fechaCambio: string; usuarioId: number; }

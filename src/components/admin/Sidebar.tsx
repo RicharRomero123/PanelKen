@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
-import { Users, Shield, Server, Briefcase, FileText, BarChart2, History, Settings, LogOut, LayoutDashboard, X, AlertTriangle } from 'lucide-react';
+import { Users, Shield, Server, Briefcase, FileText, BarChart2, History, LogOut, LayoutDashboard, X, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { getAllUsers } from '@/services/userService';

@@ -7,7 +7,7 @@ import { getDashboardData } from '../../../services/dashboardService';
 import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
-import { DollarSign, TrendingUp, RefreshCw, Users, ShieldCheck, Package, Activity } from 'lucide-react';
+import {   RefreshCw, Users, ShieldCheck, Package, Activity } from 'lucide-react';
 
 // --- Tipos definidos localmente ---
 interface DashboardData {

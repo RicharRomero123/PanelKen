@@ -3,13 +3,19 @@
 import { useEffect, useState, useCallback, FormEvent, useMemo } from 'react';
 // Usamos rutas relativas para máxima compatibilidad
 import { getAllProveedores, createProveedor, updateProveedor, deleteProveedor } from '../../../services/proveedorService';
-import { Plus, Edit, Trash2, X, Search, RefreshCw, AlertTriangle, CheckCircle, Briefcase, User, Mail, Phone, Link as LinkIcon, DollarSign, Tag } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { Plus, Edit, Trash2, X, Search, RefreshCw, AlertTriangle, CheckCircle, Briefcase, User, Mail, Phone, Link as LinkIcon, DollarSign, Tag, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
-import Image from 'next/image';
+import Link from 'next/link';
 import { FaWhatsapp } from 'react-icons/fa';
 
 // --- Tipos definidos localmente ---
+enum RolUsuario {
+    ADMIN = "ADMIN",
+    TRABAJADOR = "TRABAJADOR",
+}
+
 interface Proveedor {
     id: number;
     nombre: string;
@@ -175,6 +181,7 @@ const ProviderFormModal = ({ isOpen, onClose, mode, provider, onSaveSuccess }: {
 };
 
 export default function ProveedoresPage() {
+    const { user, isAuthenticated, loading: authLoading } = useAuth();
     const [proveedores, setProveedores] = useState<Proveedor[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -184,7 +191,15 @@ export default function ProveedoresPage() {
     const [modalMode, setModalMode] = useState<'add' | 'edit' | 'delete' | null>(null);
     const [currentProvider, setCurrentProvider] = useState<Proveedor | null>(null);
 
+    const isAuthorized = useMemo(() => {
+        return isAuthenticated && user?.rolUsuario === RolUsuario.ADMIN;
+    }, [isAuthenticated, user]);
+
     const fetchProveedores = useCallback(async () => {
+        if (!isAuthorized) {
+            setLoading(false);
+            return;
+        };
         setLoading(true);
         try {
             const data = await getAllProveedores();
@@ -194,7 +209,7 @@ export default function ProveedoresPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [isAuthorized]);
 
     useEffect(() => { fetchProveedores(); }, [fetchProveedores]);
 
@@ -246,6 +261,39 @@ export default function ProveedoresPage() {
             toast.error(err.response?.data?.message || "Error al eliminar el proveedor.");
         }
     };
+
+    if (authLoading) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <RefreshCw className="animate-spin text-4xl text-sky-400" />
+            </div>
+        );
+    }
+
+    if (!isAuthorized) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+                <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-8 max-w-md text-center">
+                    <div className="mx-auto bg-red-500/20 text-red-400 rounded-full w-16 h-16 flex items-center justify-center mb-4">
+                        <AlertTriangle size={32} />
+                    </div>
+                    <h2 className="text-2xl font-bold text-white mb-3">Acceso Restringido</h2>
+                    <p className="text-slate-300 mb-6">
+                        Solo usuarios ADMIN pueden acceder a esta sección.
+                        Contacta al administrador si necesitas acceso.
+                    </p>
+                    <Link 
+                        href="/admin/dashboard" 
+                        className="inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg transition-colors"
+                    >
+                        <ArrowLeft size={18} />
+                        Volver al Dashboard
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
 
     return (
         <div className="min-h-screen bg-slate-900 text-white p-4 sm:p-8">

@@ -40,7 +40,7 @@ export default function LoginPage() {
                 if (user.rolUsuario === 'ADMIN') {
                     router.push('/admin/dashboard');
                 } else {
-                    router.push('/panel'); 
+                    router.push('/admin/dashboard'); 
                 }
             } else {
                 // Si la API no devuelve un usuario válido, lanzamos un error

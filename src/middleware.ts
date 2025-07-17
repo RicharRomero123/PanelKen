@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Rutas que requieren que el usuario esté autenticado.
-    const protectedRoutes = ['/admin', '/panel', '/'];
+    const protectedRoutes = ['/admin', '/admin/dashboard', '/'];
     const isProtectedRoute = protectedRoutes.some(prefix => pathname.startsWith(prefix));
 
     // Si intenta acceder a una ruta protegida y no tiene la cookie de usuario, se le redirige al login.

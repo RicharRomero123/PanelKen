@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useCallback, FormEvent, useMemo } from 'react';
-// Usamos rutas relativas para máxima compatibilidad
 import { getAllClientes, createCliente, updateCliente, deleteCliente } from '../../../services/clienteService';
 import { getAllUsers } from '../../../services/userService'; 
 import { searchCuentas } from '../../../services/cuentaService'; 
@@ -217,48 +216,92 @@ const BulkCreateClientsModal = ({ isOpen, onClose, onSaveSuccess }: {
     onClose: () => void;
     onSaveSuccess: (message: string) => void;
 }) => {
-    const [formData, setFormData] = useState({
-        emails: '',
-        tipoCliente: TipoCliente.NORMAL,
-        responsable: 'No', // 'Sí' o 'No'
-    });
+    const [namesData, setNamesData] = useState('');
+    const [phonesData, setPhonesData] = useState('');
+    const [tipoCliente, setTipoCliente] = useState(TipoCliente.NORMAL);
+    const [responsable, setResponsable] = useState('No');
     const [formLoading, setFormLoading] = useState(false);
+    const [validationError, setValidationError] = useState('');
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+    // Contadores de líneas
+    const namesLineCount = useMemo(() => namesData.split('\n').filter(line => line.trim() !== '').length, [namesData]);
+    const phonesLineCount = useMemo(() => phonesData.split('\n').filter(line => line.trim() !== '').length, [phonesData]);
+
+    // Función para generar enlace de WhatsApp
+    const generateWhatsAppLink = (phone: string) => {
+        const cleaned = phone.replace(/\D/g, '');
+        if (cleaned.length >= 7) {
+            return `https://wa.me/51${cleaned}`;
+        }
+        return '';
     };
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        const emails = formData.emails.split('\n').map(email => email.trim()).filter(email => email);
-        if (emails.length === 0) {
-            toast.error("Por favor, añade al menos un correo.");
+        setValidationError('');
+
+        // Obtener líneas no vacías
+        const namesLines = namesData.split('\n')
+            .map(name => name.trim())
+            .filter(name => name !== '');
+        
+        const phonesLines = phonesData.split('\n')
+            .map(phone => phone.trim())
+            .filter(phone => phone !== '');
+
+        // Validaciones
+        if (namesLines.length === 0 || phonesLines.length === 0) {
+            setValidationError("Ambos campos deben tener al menos una línea de datos");
+            return;
+        }
+
+        if (namesLines.length !== phonesLines.length) {
+            setValidationError(`¡Error en el número de líneas!\nNombres: ${namesLines.length} líneas\nTeléfonos: ${phonesLines.length} líneas\nDeben tener la misma cantidad.`);
+            return;
+        }
+
+        // Validar formato de teléfonos
+        const phoneErrors: string[] = [];
+        phonesLines.forEach((phone, index) => {
+            if (!/^\d{7,}$/.test(phone.replace(/\D/g, ''))) {
+                phoneErrors.push(`Línea ${index + 1}: Número inválido "${phone}" - debe tener al menos 7 dígitos`);
+            }
+        });
+
+        if (phoneErrors.length > 0) {
+            setValidationError(phoneErrors.join('\n'));
             return;
         }
 
         setFormLoading(true);
-        const loadingToast = toast.loading(`Creando ${emails.length} cliente(s)...`);
+        const loadingToast = toast.loading(`Creando ${namesLines.length} cliente(s)...`);
+        
         try {
-            const creationPromises = emails.map(email => {
-                const newClientData = {
-                    correo: email,
-                    nombre: email.split('@')[0], // Default name from email
-                    apellido: '',
-                    numero: '',
-                    linkWhatsapp: '',
+            const creationPromises = namesLines.map((nameLine, index) => {
+                // Separar nombre y apellido
+                const nameParts = nameLine.trim().split(/\s+/);
+                const nombre = nameParts[0];
+                const apellido = nameParts.slice(1).join(' ') || '';
+                
+                const phone = phonesLines[index];
+                
+                return createCliente({
+                    nombre,
+                    apellido,
+                    numero: phone,
+                    correo: '',
+                    linkWhatsapp: generateWhatsAppLink(phone),
                     idDiscord: '',
                     localidad: '',
                     estadoEmocional: '',
-                    responsable: formData.responsable,
-                    tipoCliente: formData.tipoCliente,
-                };
-                return createCliente(newClientData);
+                    responsable,
+                    tipoCliente,
+                });
             });
 
             await Promise.all(creationPromises);
             toast.dismiss(loadingToast);
-            onSaveSuccess(`${emails.length} cliente(s) creado(s) exitosamente.`);
+            onSaveSuccess(`${namesLines.length} cliente(s) creado(s) exitosamente.`);
             onClose();
         } catch (err: any) {
             toast.dismiss(loadingToast);
@@ -273,37 +316,158 @@ const BulkCreateClientsModal = ({ isOpen, onClose, onSaveSuccess }: {
     return (
         <AnimatePresence>
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.95 }} className="relative bg-slate-800/80 backdrop-blur-lg border border-slate-700 p-6 rounded-2xl shadow-2xl w-full max-w-2xl mx-4">
+                <motion.div 
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }} 
+                    animate={{ opacity: 1, y: 0, scale: 1 }} 
+                    exit={{ opacity: 0, y: 20, scale: 0.95 }} 
+                    className="relative bg-slate-800/80 backdrop-blur-lg border border-slate-700 p-6 rounded-2xl shadow-2xl w-full max-w-4xl mx-4"
+                >
                     <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-700">
-                        <h2 className="text-2xl font-bold text-white flex items-center gap-3"><FileText className="text-blue-400" />Crear Clientes por Lote</h2>
-                        <button onClick={onClose} className="text-slate-400 hover:text-white hover:bg-slate-700 p-1 rounded-full transition-colors"><X size={20} /></button>
+                        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                            <FileText className="text-blue-400" /> 
+                            Crear Clientes por Lote
+                        </h2>
+                        <button onClick={onClose} className="text-slate-400 hover:text-white hover:bg-slate-700 p-1 rounded-full transition-colors">
+                            <X size={20} />
+                        </button>
                     </div>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="label-style">Lista de Correos (uno por línea)</label>
-                            <textarea name="emails" rows={8} value={formData.emails} onChange={handleInputChange} className="input-style-dark p-3 font-mono" placeholder="cliente1@mail.com&#10;cliente2@mail.com&#10;cliente3@mail.com" required />
+                    
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Columna de Nombres */}
+                            <div className="border border-slate-700 rounded-lg p-4 bg-slate-800/30">
+                                <div className="flex justify-between items-center mb-2">
+                                    <label className="label-style !text-lg font-semibold">
+                                        Nombres Completos
+                                    </label>
+                                    <span className={`text-sm font-medium px-2 py-1 rounded ${
+                                        namesLineCount === phonesLineCount 
+                                            ? 'bg-green-500/20 text-green-300' 
+                                            : 'bg-yellow-500/20 text-yellow-300'
+                                    }`}>
+                                        {namesLineCount} nombres
+                                    </span>
+                                </div>
+                                <p className="text-slate-400 text-sm mb-3">
+                                    Un nombre completo por línea (nombre y apellido)
+                                </p>
+                                <textarea 
+                                    name="names" 
+                                    rows={10}
+                                    value={namesData}
+                                    onChange={(e) => setNamesData(e.target.value)}
+                                    className="input-style-dark p-3 w-full font-mono text-base"
+                                    placeholder="Juan Perez&#10;Maria Gomez&#10;Carlos Rodriguez"
+                                />
+                            </div>
+                            
+                            {/* Columna de Teléfonos */}
+                            <div className="border border-slate-700 rounded-lg p-4 bg-slate-800/30">
+                                <div className="flex justify-between items-center mb-2">
+                                    <label className="label-style !text-lg font-semibold">
+                                        Números de Teléfono
+                                    </label>
+                                    <span className={`text-sm font-medium px-2 py-1 rounded ${
+                                        phonesLineCount === namesLineCount 
+                                            ? 'bg-green-500/20 text-green-300' 
+                                            : 'bg-yellow-500/20 text-yellow-300'
+                                    }`}>
+                                        {phonesLineCount} teléfonos
+                                    </span>
+                                </div>
+                                <p className="text-slate-400 text-sm mb-3">
+                                    Un número por línea (solo dígitos, sin espacios)
+                                </p>
+                                <textarea 
+                                    name="phones" 
+                                    rows={10}
+                                    value={phonesData}
+                                    onChange={(e) => setPhonesData(e.target.value)}
+                                    className="input-style-dark p-3 w-full font-mono text-base"
+                                    placeholder="987654321&#10;912345678&#10;998877665"
+                                />
+                            </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        
+                        {/* Contador y mensaje de estado */}
+                        <div className="flex justify-center">
+                            <div className={`px-4 py-2 rounded-lg ${
+                                namesLineCount === phonesLineCount
+                                    ? 'bg-green-500/20 text-green-300'
+                                    : 'bg-yellow-500/20 text-yellow-300'
+                            }`}>
+                                {namesLineCount === phonesLineCount ? (
+                                    <span className="flex items-center gap-2">
+                                        <CheckCircle size={16} /> 
+                                        {namesLineCount} nombres y {phonesLineCount} teléfonos - ¡Listo para crear!
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center gap-2">
+                                        <AlertTriangle size={16} />
+                                        {namesLineCount} nombres vs {phonesLineCount} teléfonos - ¡Deben coincidir!
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        
+                        {/* Mensajes de error */}
+                        {validationError && (
+                            <div className="mt-2 p-3 bg-red-500/20 text-red-300 text-sm rounded-md whitespace-pre-line border border-red-500/30">
+                                <div className="flex gap-2 items-start">
+                                    <AlertTriangle className="flex-shrink-0 mt-0.5" />
+                                    <div>{validationError}</div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Configuración adicional */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-700">
                             <div>
                                 <label className="label-style">Tipo de Cliente para el Lote</label>
-                                <select name="tipoCliente" value={formData.tipoCliente} onChange={handleInputChange} className="input-style-dark p-3">
+                                <select 
+                                    value={tipoCliente} 
+                                    onChange={(e) => setTipoCliente(e.target.value as TipoCliente)}
+                                    className="input-style-dark p-3"
+                                >
                                     <option value={TipoCliente.NORMAL}>Normal</option>
                                     <option value={TipoCliente.RESELLER}>Reseller</option>
                                 </select>
                             </div>
                             <div>
                                 <label className="label-style">¿Son Responsables?</label>
-                                <select name="responsable" value={formData.responsable} onChange={handleInputChange} className="input-style-dark p-3">
+                                <select 
+                                    value={responsable} 
+                                    onChange={(e) => setResponsable(e.target.value)}
+                                    className="input-style-dark p-3"
+                                >
                                     <option value="No">No</option>
                                     <option value="Sí">Sí</option>
                                 </select>
                             </div>
                         </div>
+                        
+                        {/* Botones de acción */}
                         <div className="mt-8 flex justify-end gap-4 pt-4 border-t border-slate-700">
-                            <button type="button" onClick={onClose} className="btn-secondary-dark">Cancelar</button>
-                            <button type="submit" disabled={formLoading} className="btn-primary-dark">
-                                {formLoading ? <RefreshCw className="animate-spin" /> : <Plus />}
-                                {formLoading ? 'Creando...' : 'Crear Lote'}
+                            <button 
+                                type="button" 
+                                onClick={onClose} 
+                                className="btn-secondary-dark"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                type="submit" 
+                                disabled={formLoading || namesLineCount !== phonesLineCount}
+                                className={`btn-primary-dark ${
+                                    namesLineCount !== phonesLineCount ? '!opacity-50 !cursor-not-allowed' : ''
+                                }`}
+                            >
+                                {formLoading ? (
+                                    <RefreshCw className="animate-spin" />
+                                ) : (
+                                    <Plus />
+                                )}
+                                {formLoading ? 'Creando...' : `Crear ${namesLineCount} Clientes`}
                             </button>
                         </div>
                     </form>
@@ -529,7 +693,6 @@ export default function ClientesPage() {
                                         <tr>
                                             <th scope="col" className="px-6 py-4">Cliente</th>
                                             <th scope="col" className="px-6 py-4">Correo</th>
-                                            <th scope="col" className="px-6 py-4">Teléfono</th>
                                             <th scope="col" className="px-6 py-4">Responsable</th>
                                             <th scope="col" className="px-6 py-4">Tipo</th>
                                             <th scope="col" className="px-6 py-4 text-center">Acciones</th>

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useAuth } from '@/context/AuthContext';
 import { getResumenVentasMensuales, getListaVentasMensuales, getResumenVentasDiarias, getListaVentasDiarias } from '../../../services/ventaCuentaService';
 import { getAllClientes } from '../../../services/clienteService';
 import { getAllServicios } from '../../../services/servicioService';
@@ -12,6 +11,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { DollarSign, TrendingUp, Calendar, RefreshCw, ChevronLeft, ChevronRight, ShoppingCart, AlertTriangle, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useAuth } from '../../../context/AuthContext';
 
 enum RolUsuario {
     ADMIN = "ADMIN",
@@ -317,7 +317,6 @@ export default function VentasPage() {
                                                                 />
                                                             )}
                                                             <div>
-                                                                <p className="font-semibold text-sm text-white">{service?.nombre || 'N/A'}</p>
                                                                 <p className="text-xs text-slate-400">{client ? `${client.nombre} ${client.apellido}` : 'N/A'}</p>
                                                             </div>
                                                         </div>

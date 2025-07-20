@@ -1,6 +1,6 @@
 // src/services/dashboardService.ts
-import axiosClient from '../lib/axiosClient';
 import { DashboardData } from '../types';
+import axiosClient from '../lib/axiosClient';
 
 /**
  * Obtiene los datos agregados para el panel de dashboard.

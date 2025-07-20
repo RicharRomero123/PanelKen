@@ -5,10 +5,12 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { Users, Shield, Server, Briefcase, FileText, BarChart2, History, LogOut, LayoutDashboard, X, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/context/AuthContext';
-import { getAllUsers } from '@/services/userService';
-import { searchCuentas } from '@/services/cuentaService';
-import { getListaVentasDiarias, getListaVentasMensuales } from '@/services/ventaCuentaService';
+import { useAuth } from '../../context/AuthContext';
+import { getAllUsers } from '../../services/userService';
+import { searchCuentas } from '../../services/cuentaService';
+import { getListaVentasDiarias, getListaVentasMensuales } from '../../services/ventaCuentaService';
+
+
 // Import services to fetch data for badges
 
 
@@ -80,7 +82,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
 
     const navItems = [
         { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { href: '/admin/usuarios', icon: Users, label: 'Usuarios', count: userCount },
+        { href: '/admin/usuarios', icon: Users, label: 'Trabajadores', count: userCount },
         { href: '/admin/servicios', icon: Shield, label: 'Servicios' },
         { href: '/admin/proveedores', icon: Briefcase, label: 'Proveedores' },
         { href: '/admin/clientes', icon: Users, label: 'Clientes' },

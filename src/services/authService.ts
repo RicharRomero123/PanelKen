@@ -1,6 +1,6 @@
 // src/services/authService.ts
+import { LoginCredentials, RegisterData, User } from '../types';
 import axiosClient from '../lib/axiosClient';
-import { LoginCredentials, RegisterData, LoginResponse, User } from '../types';
 
 /**
  * Registra un nuevo usuario.

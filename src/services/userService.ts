@@ -1,6 +1,6 @@
 // src/services/userService.ts
+import { UpdateUserData, User } from '../types';
 import axiosClient from '../lib/axiosClient';
-import { User, UpdateUserData } from '../types';
 
 /**
  * Obtiene todos los usuarios.

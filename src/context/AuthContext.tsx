@@ -4,8 +4,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
+import { User } from '../types/index';
 // Usamos una ruta relativa para máxima compatibilidad
-import { User } from '../types'; 
 
 interface AuthContextType {
     user: User | null;

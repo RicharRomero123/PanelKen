@@ -5,7 +5,7 @@ import { getAllClientes, createCliente, updateCliente, deleteCliente } from '../
 import { getAllUsers } from '../../../services/userService'; 
 import { searchCuentas } from '../../../services/cuentaService'; 
 import { getAllServicios } from '../../../services/servicioService';
-import { Plus, Edit, Trash2, X, Search, RefreshCw, AlertTriangle, CheckCircle, User as UserIcon, Mail, Phone, Link as LinkIcon, Users, FileText, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, RefreshCw, AlertTriangle, CheckCircle, User as UserIcon, Mail, Phone, Link as LinkIcon, Users, FileText, Eye, ChevronLeft, ChevronRight, Settings, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 import Image from 'next/image';
@@ -211,6 +211,7 @@ const ClientFormModal = ({ isOpen, onClose, mode, client, users, onSaveSuccess }
 };
 
 // --- Componente del Modal para Crear Clientes en Lote ---
+// --- Componente del Modal para Crear Clientes en Lote ---
 const BulkCreateClientsModal = ({ isOpen, onClose, onSaveSuccess }: {
     isOpen: boolean;
     onClose: () => void;
@@ -320,7 +321,7 @@ const BulkCreateClientsModal = ({ isOpen, onClose, onSaveSuccess }: {
                     initial={{ opacity: 0, y: 20, scale: 0.95 }} 
                     animate={{ opacity: 1, y: 0, scale: 1 }} 
                     exit={{ opacity: 0, y: 20, scale: 0.95 }} 
-                    className="relative bg-slate-800/80 backdrop-blur-lg border border-slate-700 p-6 rounded-2xl shadow-2xl w-full max-w-4xl mx-4"
+                    className="relative bg-slate-800/80 backdrop-blur-lg border border-slate-700 p-6 rounded-2xl shadow-2xl w-full max-w-5xl mx-4"
                 >
                     <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-700">
                         <h2 className="text-2xl font-bold text-white flex items-center gap-3">
@@ -333,142 +334,177 @@ const BulkCreateClientsModal = ({ isOpen, onClose, onSaveSuccess }: {
                     </div>
                     
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Columna de Nombres */}
-                            <div className="border border-slate-700 rounded-lg p-4 bg-slate-800/30">
-                                <div className="flex justify-between items-center mb-2">
-                                    <label className="label-style !text-lg font-semibold">
-                                        Nombres Completos
-                                    </label>
-                                    <span className={`text-sm font-medium px-2 py-1 rounded ${
-                                        namesLineCount === phonesLineCount 
-                                            ? 'bg-green-500/20 text-green-300' 
+                        <div className="flex flex-col lg:flex-row gap-6">
+                            {/* Sección izquierda: Columnas de datos */}
+                            <div className="flex-1">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Columna de Nombres */}
+                                    <div className="border border-slate-700 rounded-lg p-4 bg-slate-800/30">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="label-style !text-lg font-semibold">
+                                                Nombres Completos
+                                            </label>
+                                            <span className={`text-sm font-medium px-2 py-1 rounded ${
+                                                namesLineCount === phonesLineCount 
+                                                    ? 'bg-green-500/20 text-green-300' 
+                                                    : 'bg-yellow-500/20 text-yellow-300'
+                                            }`}>
+                                                {namesLineCount} nombres
+                                            </span>
+                                        </div>
+                                        <p className="text-slate-400 text-sm mb-3">
+                                            Un nombre completo por línea (nombre y apellido)
+                                        </p>
+                                        <textarea 
+                                            name="names" 
+                                            rows={10}
+                                            value={namesData}
+                                            onChange={(e) => setNamesData(e.target.value)}
+                                            className="input-style-dark p-3 w-full font-mono text-base"
+                                            placeholder="Juan Perez&#10;Maria Gomez&#10;Carlos Rodriguez"
+                                        />
+                                    </div>
+                                    
+                                    {/* Columna de Teléfonos */}
+                                    <div className="border border-slate-700 rounded-lg p-4 bg-slate-800/30">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="label-style !text-lg font-semibold">
+                                                Nro. Teléfono
+                                            </label>
+                                            <span className={`text-sm font-medium px-2 py-1 rounded ${
+                                                phonesLineCount === namesLineCount 
+                                                    ? 'bg-green-500/20 text-green-300' 
+                                                    : 'bg-yellow-500/20 text-yellow-300'
+                                            }`}>
+                                                {phonesLineCount} teléfonos
+                                            </span>
+                                        </div>
+                                        <p className="text-slate-400 text-sm mb-3">
+                                            Un número por línea (solo dígitos, sin espacios)
+                                        </p>
+                                        <textarea 
+                                            name="phones" 
+                                            rows={10}
+                                            value={phonesData}
+                                            onChange={(e) => setPhonesData(e.target.value)}
+                                            className="input-style-dark p-3 w-full font-mono text-base"
+                                            placeholder="987654321&#10;912345678&#10;998877665"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                {/* Contador y mensaje de estado */}
+                                <div className="mt-4 flex justify-center">
+                                    <div className={`px-4 py-2 rounded-lg ${
+                                        namesLineCount === phonesLineCount
+                                            ? 'bg-green-500/20 text-green-300'
                                             : 'bg-yellow-500/20 text-yellow-300'
                                     }`}>
-                                        {namesLineCount} nombres
-                                    </span>
+                                        {namesLineCount === phonesLineCount ? (
+                                            <span className="flex items-center gap-2">
+                                                <CheckCircle size={16} /> 
+                                                {namesLineCount} nombres y {phonesLineCount} teléfonos - ¡Listo para crear!
+                                            </span>
+                                        ) : (
+                                            <span className="flex items-center gap-2">
+                                                <AlertTriangle size={16} />
+                                                {namesLineCount} nombres vs {phonesLineCount} teléfonos - ¡Deben coincidir!
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                                <p className="text-slate-400 text-sm mb-3">
-                                    Un nombre completo por línea (nombre y apellido)
-                                </p>
-                                <textarea 
-                                    name="names" 
-                                    rows={10}
-                                    value={namesData}
-                                    onChange={(e) => setNamesData(e.target.value)}
-                                    className="input-style-dark p-3 w-full font-mono text-base"
-                                    placeholder="Juan Perez&#10;Maria Gomez&#10;Carlos Rodriguez"
-                                />
+                                
+                                {/* Mensajes de error */}
+                                {validationError && (
+                                    <div className="mt-4 p-3 bg-red-500/20 text-red-300 text-sm rounded-md whitespace-pre-line border border-red-500/30">
+                                        <div className="flex gap-2 items-start">
+                                            <AlertTriangle className="flex-shrink-0 mt-0.5" />
+                                            <div>{validationError}</div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             
-                            {/* Columna de Teléfonos */}
-                            <div className="border border-slate-700 rounded-lg p-4 bg-slate-800/30">
-                                <div className="flex justify-between items-center mb-2">
-                                    <label className="label-style !text-lg font-semibold">
-                                        Números de Teléfono
-                                    </label>
-                                    <span className={`text-sm font-medium px-2 py-1 rounded ${
-                                        phonesLineCount === namesLineCount 
-                                            ? 'bg-green-500/20 text-green-300' 
-                                            : 'bg-yellow-500/20 text-yellow-300'
-                                    }`}>
-                                        {phonesLineCount} teléfonos
-                                    </span>
+                            {/* Sección derecha: Opciones adicionales */}
+                            <div className="lg:w-80 space-y-6">
+                                <div className="border border-slate-700 rounded-lg p-4 bg-slate-800/30">
+                                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                        <Settings className="text-blue-400" size={18} />
+                                        Opciones Adicionales
+                                    </h3>
+                                    
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="label-style">Tipo de Cliente</label>
+                                            <select 
+                                                value={tipoCliente} 
+                                                onChange={(e) => setTipoCliente(e.target.value as TipoCliente)}
+                                                className="input-style-dark p-3 w-full"
+                                            >
+                                                <option value={TipoCliente.NORMAL}>Normal</option>
+                                                <option value={TipoCliente.RESELLER}>Reseller</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="label-style">¿Son Responsables?</label>
+                                            <select 
+                                                value={responsable} 
+                                                onChange={(e) => setResponsable(e.target.value)}
+                                                className="input-style-dark p-3 w-full"
+                                            >
+                                                <option value="No">No</option>
+                                                <option value="Sí">Sí</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="mt-8 pt-4 border-t border-slate-700">
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex items-center gap-2 text-slate-300">
+                                                <Info size={16} className="text-blue-400" />
+                                                <span className="text-sm">Los nombres se dividirán en:</span>
+                                            </div>
+                                            <div className="text-sm bg-slate-700/50 p-3 rounded-lg">
+                                                <p className="font-semibold">Primera palabra → Nombre</p>
+                                                <p className="mt-1">Resto → Apellido</p>
+                                            </div>
+                                            <div className="mt-2 flex items-center gap-2 text-slate-300">
+                                                <Info size={16} className="text-blue-400" />
+                                                <span className="text-sm">Se generará automáticamente:</span>
+                                            </div>
+                                            <div className="text-sm bg-slate-700/50 p-3 rounded-lg">
+                                                <p className="font-semibold">Enlace de WhatsApp</p>
+                                                <p className="mt-1">Para cada número válido</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <p className="text-slate-400 text-sm mb-3">
-                                    Un número por línea (solo dígitos, sin espacios)
-                                </p>
-                                <textarea 
-                                    name="phones" 
-                                    rows={10}
-                                    value={phonesData}
-                                    onChange={(e) => setPhonesData(e.target.value)}
-                                    className="input-style-dark p-3 w-full font-mono text-base"
-                                    placeholder="987654321&#10;912345678&#10;998877665"
-                                />
-                            </div>
-                        </div>
-                        
-                        {/* Contador y mensaje de estado */}
-                        <div className="flex justify-center">
-                            <div className={`px-4 py-2 rounded-lg ${
-                                namesLineCount === phonesLineCount
-                                    ? 'bg-green-500/20 text-green-300'
-                                    : 'bg-yellow-500/20 text-yellow-300'
-                            }`}>
-                                {namesLineCount === phonesLineCount ? (
-                                    <span className="flex items-center gap-2">
-                                        <CheckCircle size={16} /> 
-                                        {namesLineCount} nombres y {phonesLineCount} teléfonos - ¡Listo para crear!
-                                    </span>
-                                ) : (
-                                    <span className="flex items-center gap-2">
-                                        <AlertTriangle size={16} />
-                                        {namesLineCount} nombres vs {phonesLineCount} teléfonos - ¡Deben coincidir!
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                        
-                        {/* Mensajes de error */}
-                        {validationError && (
-                            <div className="mt-2 p-3 bg-red-500/20 text-red-300 text-sm rounded-md whitespace-pre-line border border-red-500/30">
-                                <div className="flex gap-2 items-start">
-                                    <AlertTriangle className="flex-shrink-0 mt-0.5" />
-                                    <div>{validationError}</div>
+                                
+                                {/* Botones de acción */}
+                                <div className="flex flex-col gap-3">
+                                    <button 
+                                        type="button" 
+                                        onClick={onClose} 
+                                        className="btn-secondary-dark w-full"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button 
+                                        type="submit" 
+                                        disabled={formLoading || namesLineCount !== phonesLineCount}
+                                        className={`btn-primary-dark w-full ${
+                                            namesLineCount !== phonesLineCount ? '!opacity-50 !cursor-not-allowed' : ''
+                                        }`}
+                                    >
+                                        {formLoading ? (
+                                            <RefreshCw className="animate-spin" />
+                                        ) : (
+                                            <Plus />
+                                        )}
+                                        {formLoading ? 'Creando...' : `Crear ${namesLineCount} Clientes`}
+                                    </button>
                                 </div>
                             </div>
-                        )}
-                        
-                        {/* Configuración adicional */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-700">
-                            <div>
-                                <label className="label-style">Tipo de Cliente para el Lote</label>
-                                <select 
-                                    value={tipoCliente} 
-                                    onChange={(e) => setTipoCliente(e.target.value as TipoCliente)}
-                                    className="input-style-dark p-3"
-                                >
-                                    <option value={TipoCliente.NORMAL}>Normal</option>
-                                    <option value={TipoCliente.RESELLER}>Reseller</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="label-style">¿Son Responsables?</label>
-                                <select 
-                                    value={responsable} 
-                                    onChange={(e) => setResponsable(e.target.value)}
-                                    className="input-style-dark p-3"
-                                >
-                                    <option value="No">No</option>
-                                    <option value="Sí">Sí</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        {/* Botones de acción */}
-                        <div className="mt-8 flex justify-end gap-4 pt-4 border-t border-slate-700">
-                            <button 
-                                type="button" 
-                                onClick={onClose} 
-                                className="btn-secondary-dark"
-                            >
-                                Cancelar
-                            </button>
-                            <button 
-                                type="submit" 
-                                disabled={formLoading || namesLineCount !== phonesLineCount}
-                                className={`btn-primary-dark ${
-                                    namesLineCount !== phonesLineCount ? '!opacity-50 !cursor-not-allowed' : ''
-                                }`}
-                            >
-                                {formLoading ? (
-                                    <RefreshCw className="animate-spin" />
-                                ) : (
-                                    <Plus />
-                                )}
-                                {formLoading ? 'Creando...' : `Crear ${namesLineCount} Clientes`}
-                            </button>
                         </div>
                     </form>
                 </motion.div>
@@ -577,7 +613,6 @@ export default function ClientesPage() {
             ]);
             setClientes(clientsData);
             setUsers(usersData);
-            setCuentas(accountsData);
             setServicios(servicesData);
         } catch (err) {
             toast.error('No se pudieron cargar los datos iniciales.');
@@ -693,6 +728,7 @@ export default function ClientesPage() {
                                         <tr>
                                             <th scope="col" className="px-6 py-4">Cliente</th>
                                             <th scope="col" className="px-6 py-4">Correo</th>
+                                            <th scope="col" className="px-6 py-4">Teléfono</th>
                                             <th scope="col" className="px-6 py-4">Responsable</th>
                                             <th scope="col" className="px-6 py-4">Tipo</th>
                                             <th scope="col" className="px-6 py-4 text-center">Acciones</th>

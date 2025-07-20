@@ -18,6 +18,7 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".", // <-- ESTA ES LA LÍNEA QUE FALTABA
     "paths": {
       "@/*": ["./src/*"]
     }

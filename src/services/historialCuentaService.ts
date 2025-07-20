@@ -1,6 +1,6 @@
 // src/services/historialCuentaService.ts
-import axiosClient from '../lib/axiosClient';
 import { HistorialCuenta } from '../types';
+import axiosClient from '../lib/axiosClient';
 
 /**
  * Obtiene todo el historial de cambios de cuentas.

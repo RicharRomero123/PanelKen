@@ -1,6 +1,6 @@
 // src/services/clienteService.ts
-import axiosClient from '../lib/axiosClient';
 import { Cliente, CreateClienteData, UpdateClienteData } from '../types';
+import axiosClient from '../lib/axiosClient';
 
 /**
  * Obtiene todos los clientes.

@@ -2,8 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
 import { LogOut, Calendar, Clock, Menu } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 // Se definen las props que el componente espera recibir.
 interface HeaderProps {

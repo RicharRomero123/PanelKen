@@ -1,11 +1,11 @@
 // src/app/admin/layout.tsx
 'use client';
 
-import Sidebar from '@/components/admin/Sidebar';
-import Header from '@/components/admin/Header';
-import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import Header from '../../components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 
 export default function AdminLayout({
     children,

@@ -1,6 +1,6 @@
 // src/services/proveedorService.ts
+import { CreateProveedorData, Proveedor, UpdateProveedorData } from '../types';
 import axiosClient from '../lib/axiosClient';
-import { Proveedor, CreateProveedorData, UpdateProveedorData } from '../types';
 
 /**
  * Obtiene todos los proveedores.

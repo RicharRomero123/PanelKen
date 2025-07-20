@@ -309,8 +309,8 @@ export default function UsuariosPage() {
             <div className="max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold flex items-center gap-3"><UserIcon />Gestión de Usuarios</h1>
-                        <p className="mt-2 text-slate-400">Añade, edita o elimina usuarios del sistema.</p>
+                        <h1 className="text-3xl font-bold flex items-center gap-3"><UserIcon />Gestión de Trabajadores</h1>
+                        <p className="mt-2 text-slate-400">Añade, edita o elimina trabajadores del sistema.</p>
                     </div>
                     <button onClick={() => handleOpenModal('add')} className="mt-4 md:mt-0 bg-blue-600 text-white hover:bg-blue-700 font-bold py-2.5 px-5 rounded-lg shadow-md transition duration-300 flex items-center gap-2">
                         <Plus />Nuevo Usuario

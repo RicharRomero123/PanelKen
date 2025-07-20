@@ -1,3 +1,4 @@
+import { Repeat } from 'lucide-react';
 // src/types/index.d.ts
 
 // --- ENUMS ---
@@ -13,11 +14,58 @@ export enum RolUsuario {
 /**
  * Estado de una cuenta.
  */
+export interface PerfilVencido {
+  id: number;
+  nombrePerfil: string;
+  clienteId: number;
+  correoCuenta: string;
+  contraseña: string;
+  nombreCliente: string;
+  fechaInicio: string;
+  fechaRenovacion: string;
+  precioVenta: number;
+  pin: string;
+  urlImg: string;
+  numero: string;
+}
+
+export interface renovarPerfil {
+  perfilId: number;
+    nuevoPrecio: number;
+    usuarioId: number;
+}
+interface Venta {
+  id: number;
+  cuentaId: number;
+  clienteId: number;
+  precioVenta: number;
+  fechaVenta: string;
+  tipoCliente: string;
+  usuarioAsignadorId: number;
+  perfilId?: number; // Añadido para que coincida con la respuesta de la API
+}
+
+interface VentaResumen {
+  fecha: string;
+  totalVentas: number;
+  ganancia: number;
+}
+
 export enum StatusCuenta {
     ACTIVO = "ACTIVO",
     VENCIDO = "VENCIDO",
     REEMPLAZADA = "REEMPLAZADA",
+    REPORTADO = "REPORTADO",
     SINUSAR = "SINUSAR",
+}
+export interface PerfilAsignado {
+  id: number;
+  nombrePerfil: string;
+  clienteId: number | null;
+  nombreCliente: string | null;
+  fechaInicio: string | null;
+  fechaRenovacion: string | null;
+  precioVenta: number | null;
 }
 
 /**
@@ -47,7 +95,7 @@ export interface LoginCredentials {
 
 export interface LoginResponse {
     token: string;
-    user: User; // Asumiendo que la API devuelve el usuario al loguearse
+    user: User;
 }
 
 // Usuario Controller
@@ -124,20 +172,20 @@ export interface Cuenta {
     correo: string;
     contraseña: string;
     pin: string;
-    perfiles: string; // Ahora puede ser una lista de perfiles separados por comas
-    perfilesMaximos: number | null; // Nuevo campo
-    enlace: string | null; // Nuevo campo
-    fechaInicio: string | null; // "YYYY-MM-DD" - Puede ser null si está SINUSAR
-    fechaRenovacion: string | null; // "YYYY-MM-DD" - Puede ser null si está SINUSAR
+    perfilesMaximos: number;
+    perfilesOcupados: number;
+    enlace: string;
+    fechaInicio: string; // ISO Date String "YYYY-MM-DD"
+    fechaRenovacion: string; // ISO Date String "YYYY-MM-DD"
     status: StatusCuenta;
     tipoCuenta: TipoCuenta;
     precioVenta: number;
-    clienteId: number | null; // Puede no tener cliente asignado
+    clienteId: number | null; // Puede ser nulo si no está asignada
     servicioId: number;
 }
 
-export type CreateCuentaData = Omit<Cuenta, 'id'>;
-export type UpdateCuentaData = Partial<Omit<Cuenta, 'id' | 'perfiles'>>; // Perfiles se maneja por otro endpoint
+export type CreateCuentaData = Omit<Cuenta, 'id' | 'clienteId'>; // clienteId no se envía al crear
+export type UpdateCuentaData = Partial<Omit<Cuenta, 'id' | 'clienteId' | 'servicioId'>>;
 
 export interface AsignarCuentaData {
     cuentaId: number;
@@ -146,7 +194,6 @@ export interface AsignarCuentaData {
     usuarioAsignadorId: number;
 }
 
-// NUEVA INTERFAZ PARA ASIGNAR PERFILES
 export interface AsignarPerfilesData {
     cuentaId: number;
     clienteId: number;
@@ -203,8 +250,20 @@ export interface Venta {
     fechaVenta: string; // ISO Date String
     tipoCliente: TipoCliente;
     usuarioAsignadorId: number;
+    perfilId?: number; // Es opcional, viene en la respuesta de asignar
+}
+interface ReportarPayload {
+    usuarioId: number;
+    motivo: string;
+    detalle: string;
+    marcarComoVencida: boolean;
 }
 
+interface ReemplazarPayload {
+    cuentaNuevaId: number;
+    usuarioId: number;
+    motivo: string;
+}
 // HistorialCuenta Controller
 export interface HistorialCuenta {
     id: number;

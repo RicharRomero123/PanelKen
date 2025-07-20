@@ -1,6 +1,6 @@
 // src/services/ventaCuentaService.ts
+import { Venta, VentaResumen } from '../types';
 import axiosClient from '../lib/axiosClient';
-import { VentaResumen, Venta } from '../types';
 
 /**
  * Obtiene el resumen de ventas mensuales.

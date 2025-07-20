@@ -1,99 +1,92 @@
+import axios from 'axios';
 import axiosClient from '../lib/axiosClient';
-import { Cuenta, CreateCuentaData, UpdateCuentaData, AsignarCuentaData, AsignarLoteData, CambiarCuentaParams, SearchCuentasParams, HistorialCuenta, Venta, AsignarPerfilesData } from '../types';
+import { Cuenta, CreateCuentaData, UpdateCuentaData, SearchCuentasParams, AsignarCuentaData, AsignarPerfilesData, CambiarCuentaParams, PerfilAsignado, PerfilVencido } from '../types'; // Asumiendo que tienes un archivo de tipos central
 
-/**
- * Obtiene todas las cuentas.
- */
+
+// --- FUNCIONES DEL SERVICIO ---
+
 export const getAllCuentas = async (): Promise<Cuenta[]> => {
     const response = await axiosClient.get<Cuenta[]>('/cuentas');
     return response.data;
 };
 
-/**
- * Busca cuentas según parámetros.
- * @param params - Parámetros de búsqueda (status, servicioId, clienteId).
- */
 export const searchCuentas = async (params: SearchCuentasParams): Promise<Cuenta[]> => {
     const response = await axiosClient.get<Cuenta[]>('/cuentas/search', { params });
     return response.data;
 };
 
+
+// --- ¡NUEVA FUNCIÓN! ---
 /**
- * Obtiene una cuenta por su ID.
- * @param id - El ID de la cuenta.
+ * Obtiene los perfiles asignados de una cuenta específica.
+ * @param cuentaId - El ID de la cuenta.
  */
-export const getCuentaById = async (id: number): Promise<Cuenta> => {
-    const response = await axiosClient.get<Cuenta>(`/cuentas/${id}`);
-    return response.data;
+export const getPerfilesByCuentaId = async (cuentaId: number): Promise<PerfilAsignado[]> => {
+  const response = await axiosClient.get<PerfilAsignado[]>(`/cuentas/${cuentaId}/perfiles`);
+  return response.data;
 };
 
-/**
- * Crea una nueva cuenta.
- * @param data - Datos de la nueva cuenta.
- */
-export const createCuenta = async (data: Partial<CreateCuentaData>): Promise<Cuenta> => {
+export const getPerfilesVencidos = async (): Promise<PerfilVencido[]> => {
+  const response = await axiosClient.get<PerfilVencido[]>('/cuentas/perfiles/vencidos');
+  return response.data;
+};
+
+export const createCuenta = async (data: CreateCuentaData): Promise<Cuenta> => {
     const response = await axiosClient.post<Cuenta>('/cuentas', data);
     return response.data;
 };
 
-/**
- * Actualiza una cuenta.
- * @param id - ID de la cuenta a actualizar.
- * @param data - Datos a actualizar.
- */
 export const updateCuenta = async (id: number, data: UpdateCuentaData): Promise<Cuenta> => {
     const response = await axiosClient.put<Cuenta>(`/cuentas/${id}`, data);
     return response.data;
 };
 
-/**
- * Elimina una cuenta.
- * @param id - ID de la cuenta a eliminar.
- */
 export const deleteCuenta = async (id: number): Promise<void> => {
     await axiosClient.delete(`/cuentas/${id}`);
 };
 
-/**
- * Marca las cuentas vencidas automáticamente.
- */
-export const vencerCuentasAutomatico = async (): Promise<Cuenta[]> => {
-    const response = await axiosClient.post<Cuenta[]>('/cuentas/vencer-automatico');
+export const asignarPerfiles = async (data: AsignarPerfilesData): Promise<any> => {
+    const response = await axiosClient.post('/cuentas/asignar-perfiles', data);
     return response.data;
 };
 
-/**
- * Cambia una cuenta por otra.
- * @param params - Parámetros para el cambio de cuenta.
- */
-export const cambiarCuenta = async (params: CambiarCuentaParams): Promise<HistorialCuenta> => {
-    const response = await axiosClient.post<HistorialCuenta>('/cuentas/cambiar', null, { params });
+export const asignarCuenta = async (data: AsignarCuentaData): Promise<any> => {
+    const response = await axiosClient.post('/cuentas/asignar', data);
     return response.data;
 };
 
-/**
- * Asigna una cuenta INDIVIDUAL a un cliente.
- * @param data - Datos de la asignación.
- */
-export const asignarCuenta = async (data: AsignarCuentaData): Promise<Venta> => {
-    const response = await axiosClient.post<Venta>('/cuentas/asignar', data);
+export const cambiarCuenta = async (params: CambiarCuentaParams): Promise<any> => {
+    const response = await axiosClient.post('/cuentas/cambiar', { params });
     return response.data;
 };
-
-/**
- * NUEVA FUNCIÓN: Asigna perfiles de una cuenta COMPLETA a un cliente.
- * @param data - Datos de la asignación de perfiles.
- */
-export const asignarPerfiles = async (data: AsignarPerfilesData): Promise<Cuenta> => {
-    const response = await axiosClient.post<Cuenta>('/cuentas/asignar-perfiles', data);
+export const liberarPerfil = async (perfilId: number) => {
+  try {
+    const response = await axiosClient.patch(`/cuentas/perfiles/${perfilId}/liberar`);
     return response.data;
+  } catch (error) {
+    throw error;
+  }
 };
 
-/**
- * Asigna un lote de cuentas a un cliente.
- * @param data - Datos de la asignación en lote.
- */
-export const asignarLoteCuentas = async (data: AsignarLoteData): Promise<Venta[]> => {
-    const response = await axiosClient.post<Venta[]>('/cuentas/asignar-lote', data);
-    return response.data;
+export const renovarPerfil = async (perfilId: number, nuevoPrecio: number, usuarioId: number): Promise<any> => {
+    try {
+        const response = await axiosClient.patch(`/cuentas/perfiles/${perfilId}/renovar-suscripcion`, {
+            nuevoPrecioVenta: nuevoPrecio,
+            usuarioId: usuarioId
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+export const renovarCuentaCompleta = async (cuentaId: number, nuevoPrecio: number, usuarioId: number): Promise<any> => {
+    try {
+        const response = await axiosClient.patch(`/cuentas/${cuentaId}/renovar-suscripcion`, {
+            nuevoPrecioVenta: nuevoPrecio,
+            usuarioId: usuarioId
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
 };

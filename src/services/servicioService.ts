@@ -1,6 +1,6 @@
 // src/services/servicioService.ts
+import { CreateServicioData, Servicio, UpdateServicioData } from '../types';
 import axiosClient from '../lib/axiosClient';
-import { Servicio, CreateServicioData, UpdateServicioData } from '../types';
 
 /**
  * Obtiene todos los servicios.

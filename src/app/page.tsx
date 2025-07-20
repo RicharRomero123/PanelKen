@@ -3,7 +3,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from '../context/AuthContext';
 // CORRECCIÓN: Se elimina la importación de 'RolUsuario' para evitar el error de compilación.
 
 /**

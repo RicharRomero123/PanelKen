@@ -1,6 +1,6 @@
 // src/services/reporteCuentaService.ts
+import { CreateReporteCuentaData, ReemplazarPayload, ReportarPayload, ReporteCuenta } from '../types';
 import axiosClient from '../lib/axiosClient';
-import { ReporteCuenta, CreateReporteCuentaData } from '../types';
 
 /**
  * Obtiene todos los reportes.
@@ -27,3 +27,20 @@ export const createReporte = async (data: CreateReporteCuentaData): Promise<Repo
     const response = await axiosClient.post<ReporteCuenta>('/reportes', data);
     return response.data;
 };
+
+
+export const reportarCuenta = async (cuentaId: number, data: ReportarPayload): Promise<any> => {
+    const response = await axiosClient.post(`/cuentas/${cuentaId}/reportar`, data);
+    return response.data;
+};
+
+export const reemplazarCuentaIndividual = async (cuentaId: number, data: ReemplazarPayload): Promise<any> => {
+    const response = await axiosClient.post(`/cuentas/${cuentaId}/reemplazar-individual`, data);
+    return response.data;
+};
+
+export const reemplazarCuentaCompleta = async (cuentaId: number, data: ReemplazarPayload): Promise<any> => {
+    const response = await axiosClient.post(`/cuentas/${cuentaId}/reemplazar-completa`, data);
+    return response.data;
+};
+

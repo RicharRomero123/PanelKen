@@ -147,7 +147,8 @@ const handleOpenModal = (mode: string, account: Cuenta | null = null) => {
         toast.error('Por favor selecciona un usuario para realizar la renovación');
         return;
     }
-    
+    const [cuentas, setCuentas] = useState<Cuenta[]>([]);
+
     const loadingToast = toast.loading("Renovando perfil...");
     try {
         // Usar selectedUserId en lugar de getCurrentUserId()
@@ -196,7 +197,16 @@ const handleOpenModal = (mode: string, account: Cuenta | null = null) => {
  
 
     const handleCloseModal = () => setModalState({ mode: null, account: null });
+const tabCounts = useMemo(() => {
+    // La lógica de filtrado debe coincidir con la de tus pestañas
+    const stock = cuentas.filter(c => c.status === StatusCuenta.SINUSAR).length;
+    const sold = cuentas.filter(c => c.status === StatusCuenta.ACTIVO).length;
+    const vencido = cuentas.filter(c => c.status === StatusCuenta.VENCIDO).length;
+    const reported = cuentas.filter(c => c.status === StatusCuenta.REPORTADO).length;
+    const fallen = cuentas.filter(c => c.status === StatusCuenta.REEMPLAZADA).length;
 
+    return { stock, sold, vencido, reported, fallen };
+}, [cuentas]); // Se recalcula solo cuando el array de 'cuentas' cambia
     const handleSaveSuccess = (message: string) => {
         toast.success(message);
         setSelectedAccounts([]);
@@ -480,11 +490,13 @@ const handleOpenModal = (mode: string, account: Cuenta | null = null) => {
                 </div>
 
                
-                <CuentasTabs 
-                    activeTab={activeTab} 
-                    setActiveTab={setActiveTab} 
-                    setSelectedAccounts={setSelectedAccounts} 
-                />
+
+<CuentasTabs 
+    activeTab={activeTab} 
+    setActiveTab={setActiveTab} 
+    setSelectedAccounts={setSelectedAccounts} 
+    counts={tabCounts} // <-- Pasa el objeto con los conteos aquí
+/>
                 
                 <CuentasToolbar.Filters 
                     filters={filters} 

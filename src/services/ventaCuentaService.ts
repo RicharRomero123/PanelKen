@@ -33,3 +33,4 @@ export const getListaVentasDiarias = async (): Promise<Venta[]> => {
     const response = await axiosClient.get<Venta[]>('/ventas/diarias/lista');
     return response.data;
 };
+

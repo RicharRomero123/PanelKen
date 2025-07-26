@@ -1,7 +1,10 @@
 // src/services/clienteService.ts
-import { Cliente, CreateClienteData, UpdateClienteData } from '../types';
+import { Cliente, CreateClienteData, SuscripcionCliente, UpdateClienteData } from '../types';
 import axiosClient from '../lib/axiosClient';
 
+/**
+ * Obtiene todos los clientes.
+ */
 /**
  * Obtiene todos los clientes.
  */
@@ -44,4 +47,13 @@ export const updateCliente = async (id: number, data: UpdateClienteData): Promis
  */
 export const deleteCliente = async (id: number): Promise<void> => {
     await axiosClient.delete(`/clientes/${id}`);
+};
+
+/**
+ * Obtiene todas las suscripciones de un cliente por su ID.
+ * @param id - El ID del cliente.
+ */
+export const getClienteSuscripciones = async (id: number): Promise<SuscripcionCliente> => {
+    const response = await axiosClient.get<SuscripcionCliente>(`/clientes/${id}/suscripciones`);
+    return response.data;
 };

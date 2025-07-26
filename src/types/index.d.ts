@@ -11,6 +11,41 @@ export enum RolUsuario {
     TRABAJADOR = "TRABAJADOR",
 }
 
+
+// --- NUEVOS TIPOS PARA LAS SUSCRIPCIONES ---
+export interface CuentaCompletaSuscripcion {
+  cuentaId: number;
+  correo: string;
+  nombreServicio: string;
+  urlImgServicio: string;
+  fechaInicio: string;
+  fechaRenovacion: string;
+  status: string;
+}
+
+export interface PerfilIndividualSuscripcion {
+  id: number;
+  nombrePerfil: string;
+  clienteId: number;
+  correoCuenta: string;
+  nombreCliente: string;
+  urlImg: string;
+  numero: string;
+  contraseña: string;
+  pin: string;
+  fechaInicio: string;
+  fechaRenovacion: string;
+  precioVenta: number;
+}
+
+export interface SuscripcionCliente {
+  clienteId: number;
+  nombreCliente: string;
+  numeroCliente: string;
+  cuentasCompletas: CuentaCompletaSuscripcion[];
+  perfilesIndividuales: PerfilIndividualSuscripcion[];
+}
+
 /**
  * Estado de una cuenta.
  */

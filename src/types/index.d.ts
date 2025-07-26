@@ -45,7 +45,12 @@ export interface SuscripcionCliente {
   cuentasCompletas: CuentaCompletaSuscripcion[];
   perfilesIndividuales: PerfilIndividualSuscripcion[];
 }
-
+export interface TopCliente {
+  clienteId: number;
+  nombreCliente: string;
+  numeroCliente: string;
+  totalCompras: number;
+}
 /**
  * Estado de una cuenta.
  */

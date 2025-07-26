@@ -1,27 +1,80 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
-import { getResumenVentasMensuales, getListaVentasMensuales, getResumenVentasDiarias, getListaVentasDiarias } from '../../../services/ventaCuentaService';
-import { getAllClientes } from '../../../services/clienteService';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { 
+    getResumenVentasMensuales, 
+    getListaVentasMensuales, 
+    getResumenVentasDiarias, 
+    getListaVentasDiarias,
+    getTopClientesDiarios,
+    getTopClientesSemanales, // <-- Nueva importación
+} from '../../../services/ventaCuentaService';
 import { getAllServicios } from '../../../services/servicioService';
 import { searchCuentas } from '../../../services/cuentaService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
-import { DollarSign, TrendingUp, Calendar, RefreshCw, ChevronLeft, ChevronRight, ShoppingCart, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { DollarSign, TrendingUp, Calendar, RefreshCw, ChevronLeft, ChevronRight, ShoppingCart, AlertTriangle, ArrowLeft, Crown, Tv, User as UserIcon, Tag, X, ShoppingBag } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '../../../context/AuthContext';
+import { getAllClientes, getClienteSuscripciones } from '@/services/clienteService';
+
+// --- DEFINICIONES DE TIPOS ---
 
 enum RolUsuario {
     ADMIN = "ADMIN",
     TRABAJADOR = "TRABAJADOR",
 }
 
+// Tipos para el detalle de suscripciones
+interface CuentaCompletaSuscripcion {
+  cuentaId: number;
+  correo: string;
+  nombreServicio: string;
+  urlImgServicio: string;
+  fechaInicio: string;
+  fechaRenovacion: string;
+  status: string;
+}
+
+interface PerfilIndividualSuscripcion {
+  id: number;
+  nombrePerfil: string;
+  clienteId: number;
+  correoCuenta: string;
+  nombreCliente: string;
+  urlImg: string;
+  numero: string;
+  contraseña: string;
+  pin: string;
+  fechaInicio: string;
+  fechaRenovacion: string;
+  precioVenta: number;
+}
+
+interface SuscripcionCliente {
+  clienteId: number;
+  nombreCliente: string;
+  numeroCliente: string;
+  cuentasCompletas: CuentaCompletaSuscripcion[];
+  perfilesIndividuales: PerfilIndividualSuscripcion[];
+}
+
+interface TopCliente {
+  clienteId: number;
+  nombreCliente: string;
+  numeroCliente: string;
+  totalCompras: number;
+}
+
 interface Venta { 
     id: number; 
     cuentaId: number; 
     clienteId: number; 
+    perfilId: number | null;
+    nombreServicio: string;
+    urlImg: string;
     precioVenta: number; 
     fechaVenta: string; 
     tipoCliente: string; 
@@ -51,6 +104,8 @@ interface Cuenta {
     correo: string; 
     servicioId: number; 
 }
+
+// --- COMPONENTES ---
 
 const StatCard = ({ title, value, unit, icon: Icon, gradient, formatAsCurrency = false }: { 
     title: string; 
@@ -89,6 +144,106 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return null;
 };
 
+const TopClientsCard = ({ title, clients, onClientClick }: { title: string; clients: TopCliente[]; onClientClick: (client: TopCliente) => void; }) => (
+    <div className="bg-slate-800/60 border border-slate-700/80 p-4 sm:p-6 rounded-xl shadow-lg flex flex-col">
+        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Crown className="text-yellow-400"/> {title}</h2>
+        <div className="flex-grow space-y-3 overflow-y-auto">
+            {clients.length > 0 ? clients.map((client, index) => (
+                <button key={client.clienteId} onClick={() => onClientClick(client)} className="w-full text-left flex items-center justify-between bg-slate-800/70 p-3 rounded-lg hover:bg-slate-700/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold text-slate-400">{index + 1}.</span>
+                        <div>
+                            <p className="font-semibold text-white">{client.nombreCliente}</p>
+                            <p className="text-xs text-slate-500">{client.numeroCliente}</p>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <span className="font-bold text-lg text-sky-400 flex items-center justify-end gap-1.5">
+                            {client.totalCompras}
+                            <ShoppingCart size={14} className="opacity-80"/>
+                        </span>
+                        <p className="text-xs text-slate-500 -mt-1">compras</p>
+                    </div>
+                </button>
+            )) : (
+                <div className="text-center py-10 flex-grow flex items-center justify-center">
+                    <p className="text-slate-400">No hay datos de clientes.</p>
+                </div>
+            )}
+        </div>
+    </div>
+);
+
+const SuscripcionModal = ({ isOpen, onClose, suscripciones }: {
+  isOpen: boolean;
+  onClose: () => void;
+  suscripciones: SuscripcionCliente | null;
+}) => {
+  if (!isOpen || !suscripciones) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative bg-slate-800/80 backdrop-blur-lg border border-slate-700 p-6 rounded-2xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-700 flex-shrink-0">
+          <div>
+            <h2 className="text-2xl font-bold text-white flex items-center gap-3"><ShoppingBag className="text-blue-400"/>Compras de {suscripciones.nombreCliente}</h2>
+            <p className="text-slate-400">Teléfono: {suscripciones.numeroCliente}</p>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-white hover:bg-slate-700 p-1 rounded-full transition-colors"><X size={20} /></button>
+        </div>
+        <div className="overflow-y-auto pr-2 space-y-6">
+          <div>
+            <h3 className="text-xl font-semibold text-blue-300 mb-3 flex items-center gap-2"><Tv size={20}/> Cuentas Completas</h3>
+            {suscripciones.cuentasCompletas.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {suscripciones.cuentasCompletas.map(cuenta => (
+                  <div key={cuenta.cuentaId} className="bg-slate-700/50 p-4 rounded-lg border border-slate-600/50 flex flex-col justify-between">
+                    <div className="flex items-center gap-4 mb-3">
+                        <Image src={cuenta.urlImgServicio} alt={cuenta.nombreServicio} width={40} height={40} className="rounded-md" />
+                        <div>
+                            <p className="font-bold text-lg text-white">{cuenta.nombreServicio}</p>
+                            <p className="text-sm text-slate-300 font-mono">{cuenta.correo}</p>
+                        </div>
+                    </div>
+                    <div className="text-sm space-y-2">
+                        <p className="flex justify-between"><span>Inicio:</span> <span>{new Date(cuenta.fechaInicio).toLocaleDateString('es-ES')}</span></p>
+                        <p className="flex justify-between"><span>Vence:</span> <strong className="text-yellow-300">{new Date(cuenta.fechaRenovacion).toLocaleDateString('es-ES')}</strong></p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="text-slate-400 italic text-sm">No tiene cuentas completas activas.</p>}
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-purple-300 mb-3 flex items-center gap-2"><UserIcon size={20}/> Perfiles Individuales</h3>
+            {suscripciones.perfilesIndividuales.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {suscripciones.perfilesIndividuales.map(perfil => (
+                  <div key={perfil.id} className="bg-slate-700/50 p-4 rounded-lg border border-slate-600/50 flex flex-col justify-between">
+                    <div className="flex items-center gap-4 mb-3">
+                        <Image src={perfil.urlImg} alt="Servicio" width={40} height={40} className="rounded-md" />
+                        <div>
+                            <p className="font-bold text-lg text-white">Perfil: {perfil.nombrePerfil}</p>
+                            <p className="text-sm text-slate-300 font-mono">{perfil.correoCuenta}</p>
+                        </div>
+                    </div>
+                    <div className="text-sm space-y-2">
+                        <p className="flex justify-between"><span>Precio:</span> <span>S/. {perfil.precioVenta.toFixed(2)}</span></p>
+                        <p className="flex justify-between"><span>Inicio:</span> <span>{new Date(perfil.fechaInicio).toLocaleDateString('es-ES')}</span></p>
+                        <p className="flex justify-between"><span>Vence:</span> <strong className="text-yellow-300">{new Date(perfil.fechaRenovacion).toLocaleDateString('es-ES')}</strong></p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="text-slate-400 italic text-sm">No tiene perfiles individuales activos.</p>}
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+
 export default function VentasPage() {
     const { user, isAuthenticated, loading: authLoading } = useAuth();
     const [dailySummary, setDailySummary] = useState<VentaResumen | null>(null);
@@ -102,6 +257,13 @@ export default function VentasPage() {
     const [view, setView] = useState<'daily' | 'monthly'>('daily');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 8;
+    
+    const [topDailyClients, setTopDailyClients] = useState<TopCliente[]>([]);
+    const [topWeeklyClients, setTopWeeklyClients] = useState<TopCliente[]>([]);
+
+    // Estados para el modal de suscripciones
+    const [suscripciones, setSuscripciones] = useState<SuscripcionCliente | null>(null);
+    const [isSuscripcionModalOpen, setIsSuscripcionModalOpen] = useState(false);
 
     const isAuthorized = useMemo(() => {
         return isAuthenticated && user?.rolUsuario === RolUsuario.ADMIN;
@@ -113,22 +275,26 @@ export default function VentasPage() {
         setDataLoading(true);
         const loadingToast = toast.loading("Actualizando datos...");
         try {
-            const [ds, ms, dl, ml, cl, sl, al] = await Promise.all([
+            const [ds, ms, dl, ml, cl, sl, al, tdc, twc] = await Promise.all([
                 getResumenVentasDiarias(),
                 getResumenVentasMensuales(),
                 getListaVentasDiarias(),
                 getListaVentasMensuales(),
                 getAllClientes(),
                 getAllServicios(),
-                searchCuentas({})
+                searchCuentas({}),
+                getTopClientesDiarios(),
+                getTopClientesSemanales(),
             ]);
             setDailySummary(ds);
             setMonthlySummary(ms);
-            setDailySales(dl);
-            setMonthlySales(ml);
+            setDailySales(dl as Venta[]);
+            setMonthlySales(ml as Venta[]);
             setClients(cl);
             setServices(sl);
             setAccounts(al);
+            setTopDailyClients(tdc);
+            setTopWeeklyClients(twc);
             toast.dismiss(loadingToast);
             toast.success("Datos actualizados correctamente.");
         } catch (err) {
@@ -141,12 +307,30 @@ export default function VentasPage() {
     }, [isAuthorized]);
 
     useEffect(() => { 
-        if (isAuthorized) {
+        if (!authLoading && isAuthorized) {
             fetchData();
         }
-    }, [fetchData, isAuthorized]);
+    }, [fetchData, isAuthorized, authLoading]);
 
-    // Estados de carga
+    // Lógica para abrir/cerrar modal de suscripciones
+    const handleOpenSuscripcionesModal = async (cliente: TopCliente) => {
+        const loadingToast = toast.loading("Cargando suscripciones...");
+        try {
+            const data = await getClienteSuscripciones(cliente.clienteId);
+            setSuscripciones(data);
+            setIsSuscripcionModalOpen(true);
+            toast.dismiss(loadingToast);
+        } catch (error) {
+            toast.dismiss(loadingToast);
+            toast.error("Error al cargar las suscripciones del cliente.");
+        }
+    };
+
+    const handleCloseSuscripcionesModal = () => {
+        setIsSuscripcionModalOpen(false);
+        setSuscripciones(null);
+    };
+
     if (authLoading) {
         return (
             <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -155,7 +339,6 @@ export default function VentasPage() {
         );
     }
 
-    // Acceso no autorizado
     if (!isAuthorized) {
         return (
             <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -180,12 +363,11 @@ export default function VentasPage() {
         );
     }
 
-    // Contenido autorizado
     const salesToShow = view === 'daily' ? dailySales : monthlySales;
     const paginatedSales = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
         return salesToShow.slice(startIndex, startIndex + itemsPerPage);
-    }, [salesToShow, currentPage, itemsPerPage]);
+    }, [salesToShow, currentPage]);
 
     const totalPages = Math.ceil(salesToShow.length / itemsPerPage);
 
@@ -274,50 +456,28 @@ export default function VentasPage() {
                                 <div className="flex justify-between items-center mb-4">
                                     <h2 className="text-xl font-bold text-white">Últimas Ventas</h2>
                                     <div className="flex items-center bg-slate-900/50 border border-slate-700 rounded-lg p-1">
-                                        <button 
-                                            onClick={() => { setView('daily'); setCurrentPage(1); }} 
-                                            className={`px-3 py-1 text-sm rounded-md transition-colors ${view === 'daily' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:bg-slate-700/50'}`}
-                                        >
-                                            Diario
-                                        </button>
-                                        <button 
-                                            onClick={() => { setView('monthly'); setCurrentPage(1); }} 
-                                            className={`px-3 py-1 text-sm rounded-md transition-colors ${view === 'monthly' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:bg-slate-700/50'}`}
-                                        >
-                                            Mensual
-                                        </button>
+                                        <button onClick={() => { setView('daily'); setCurrentPage(1); }} className={`px-3 py-1 text-sm rounded-md transition-colors ${view === 'daily' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:bg-slate-700/50'}`}>Diario</button>
+                                        <button onClick={() => { setView('monthly'); setCurrentPage(1); }} className={`px-3 py-1 text-sm rounded-md transition-colors ${view === 'monthly' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:bg-slate-700/50'}`}>Mensual</button>
                                     </div>
                                 </div>
-
                                 <div className="flex-grow space-y-3 overflow-y-auto">
                                     <AnimatePresence>
                                         {paginatedSales.length > 0 ? paginatedSales.map((sale) => {
                                             const client = clients.find(c => c.id === sale.clienteId);
-                                            const account = accounts.find(a => a.id === sale.cuentaId);
-                                            const service = services.find(s => s.id === account?.servicioId);
                                             return (
-                                                <motion.div 
-                                                    key={sale.id} 
-                                                    layout 
-                                                    initial={{ opacity: 0, y: 10 }} 
-                                                    animate={{ opacity: 1, y: 0 }} 
-                                                    exit={{ opacity: 0, y: -10 }} 
-                                                    transition={{ duration: 0.2 }}
-                                                    className="bg-slate-800/70 border border-slate-700 rounded-lg p-3 hover:bg-slate-700/50 transition-colors"
-                                                >
+                                                <motion.div key={sale.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="bg-slate-800/70 border border-slate-700 rounded-lg p-3 hover:bg-slate-700/50 transition-colors">
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-3">
-                                                            {service && (
-                                                                <Image 
-                                                                    src={service.urlImg || 'https://placehold.co/40x40/1e293b/94a3b8?text=S'} 
-                                                                    alt={service.nombre} 
-                                                                    width={32} 
-                                                                    height={32} 
-                                                                    className="rounded-md object-cover" 
-                                                                />
-                                                            )}
+                                                            <Image 
+                                                                src={sale.urlImg || 'https://placehold.co/40x40/1e293b/94a3b8?text=S'} 
+                                                                alt={sale.nombreServicio} 
+                                                                width={32} 
+                                                                height={32} 
+                                                                className="rounded-md object-cover" 
+                                                            />
                                                             <div>
-                                                                <p className="text-xs text-slate-400">{client ? `${client.nombre} ${client.apellido}` : 'N/A'}</p>
+                                                                <p className="font-semibold text-white text-sm">{sale.nombreServicio}</p>
+                                                                <p className="text-xs text-slate-400 -mt-1">{client ? `${client.nombre} ${client.apellido}` : 'Cliente Desconocido'}</p>
                                                             </div>
                                                         </div>
                                                         <div className="text-right">
@@ -328,39 +488,35 @@ export default function VentasPage() {
                                                 </motion.div>
                                             );
                                         }) : (
-                                            <div className="text-center py-10">
-                                                <p className="text-slate-400">No hay ventas para mostrar.</p>
-                                            </div>
+                                            <div className="text-center py-10"><p className="text-slate-400">No hay ventas para mostrar.</p></div>
                                         )}
                                     </AnimatePresence>
                                 </div>
-                                
                                 {totalPages > 1 && (
                                     <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-700">
                                         <span className="text-sm text-slate-400">Página {currentPage} de {totalPages}</span>
                                         <div className="flex gap-2">
-                                            <button 
-                                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
-                                                disabled={currentPage === 1} 
-                                                className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                            >
-                                                <ChevronLeft size={16}/>
-                                            </button>
-                                            <button 
-                                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
-                                                disabled={currentPage === totalPages} 
-                                                className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                            >
-                                                <ChevronRight size={16}/>
-                                            </button>
+                                            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft size={16}/></button>
+                                            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight size={16}/></button>
                                         </div>
                                     </div>
                                 )}
                             </div>
                         </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <TopClientsCard title="Top Clientes del Día" clients={topDailyClients} onClientClick={handleOpenSuscripcionesModal} />
+                            <TopClientsCard title="Top Clientes de la Semana" clients={topWeeklyClients} onClientClick={handleOpenSuscripcionesModal} />
+                        </div>
                     </div>
                 )}
             </div>
+
+            <SuscripcionModal 
+                isOpen={isSuscripcionModalOpen}
+                onClose={handleCloseSuscripcionesModal}
+                suscripciones={suscripciones}
+            />
         </div>
     );
 }

@@ -1,5 +1,5 @@
 // src/services/ventaCuentaService.ts
-import { Venta, VentaResumen } from '../types';
+import { TopCliente, Venta, VentaResumen } from '../types';
 import axiosClient from '../lib/axiosClient';
 
 /**
@@ -34,3 +34,18 @@ export const getListaVentasDiarias = async (): Promise<Venta[]> => {
     return response.data;
 };
 
+/**
+ * Obtiene el top de clientes de la semana.
+ */
+export const getTopClientesSemanales = async (): Promise<TopCliente[]> => {
+    const response = await axiosClient.get<TopCliente[]>('/ventas/semanales/top-clientes');
+    return response.data;
+};
+
+/**
+ * Obtiene el top de clientes del día.
+ */
+export const getTopClientesDiarios = async (): Promise<TopCliente[]> => {
+    const response = await axiosClient.get<TopCliente[]>('/ventas/diarias/top-clientes');
+    return response.data;
+};

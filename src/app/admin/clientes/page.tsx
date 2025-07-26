@@ -14,7 +14,8 @@ import { getAllServicios } from '../../../services/servicioService';
 import { 
     Plus, Edit, Trash2, X, Search, RefreshCw, AlertTriangle, CheckCircle, 
     User as UserIcon, Mail, Phone, Link as LinkIcon, Users, FileText, Eye, 
-    ChevronLeft, ChevronRight, Settings, Info, Tv, Calendar, Tag 
+    ChevronLeft, ChevronRight, Settings, Info, Tv, Calendar, Tag, 
+    ShoppingBag
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
@@ -673,8 +674,7 @@ export default function ClientesPage() {
                                                     </td>
                                                     <td className="px-6 py-4"><span className={`px-2 py-1 text-xs font-semibold rounded-full ${client.tipoCliente === 'RESELLER' ? 'bg-purple-500/20 text-purple-300' : 'bg-sky-500/20 text-sky-300'}`}>{client.tipoCliente}</span></td>
                                                     <td className="px-6 py-4 flex justify-center items-center gap-2">
-                                                        <button onClick={() => handleOpenSuscripcionesModal(client)} className="p-2 text-indigo-400 hover:text-white hover:bg-indigo-500/20 rounded-md" title="Ver Suscripciones"><Info size={16} /></button>
-                                                        <button onClick={() => handleOpenModal('history', client)} className="p-2 text-blue-400 hover:text-white hover:bg-blue-500/20 rounded-md" title="Ver Historial y Enviar"><Eye size={16} /></button>
+                                                        <button onClick={() => handleOpenSuscripcionesModal(client)} className="p-2 text-indigo-400 hover:text-white hover:bg-indigo-500/20 rounded-md" title="Ver Compras"><ShoppingBag size={16} /></button>
                                                         <button onClick={() => handleOpenModal('edit', client)} className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-md" title="Editar"><Edit size={16} /></button>
                                                         <button onClick={() => handleOpenModal('delete', client)} className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-md" title="Eliminar"><Trash2 size={16} /></button>
                                                     </td>

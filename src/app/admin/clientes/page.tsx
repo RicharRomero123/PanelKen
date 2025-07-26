@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, FormEvent, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, FormEvent, useMemo, useRef } from 'react';
 import { 
     getAllClientes, 
     createCliente, 
@@ -15,11 +15,17 @@ import {
     Plus, Edit, Trash2, X, Search, RefreshCw, AlertTriangle, CheckCircle, 
     User as UserIcon, Mail, Phone, Link as LinkIcon, Users, FileText, Eye, 
     ChevronLeft, ChevronRight, Settings, Info, Tv, Calendar, Tag, 
-    ShoppingBag
+    ShoppingBag, Download, Send,
+    ClipboardIcon,
+    PhoneCall
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 import Image from 'next/image';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { FcCellPhone } from 'react-icons/fc';
+import { MdEmail } from 'react-icons/md';
 
 // --- DEFINICIONES DE TIPOS ---
 
@@ -109,68 +115,130 @@ const SuscripcionModal = ({ isOpen, onClose, suscripciones }: {
   onClose: () => void;
   suscripciones: SuscripcionCliente | null;
 }) => {
+  const receiptRef = useRef<HTMLDivElement>(null);
+
   if (!isOpen || !suscripciones) return null;
 
-  const SubscriptionCard = ({ children }: { children: React.ReactNode }) => (
-    <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600/50">{children}</div>
+  const handleDownloadPDF = () => {
+    const receiptElement = receiptRef.current;
+    if (!receiptElement) return;
+
+    toast.loading('Generando PDF...', { id: 'pdf-toast' });
+
+    html2canvas(receiptElement, { scale: 2 }).then(canvas => {
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`estado_cuenta_${suscripciones.nombreCliente.replace(' ', '_')}.pdf`);
+      toast.success('PDF descargado exitosamente.', { id: 'pdf-toast' });
+    });
+  };
+
+  const handleSendWhatsApp = () => {
+    let message = `🧾 *ESTADO DE CUENTA - SISTEMASVIP.SHOP* 🧾\n\n`;
+    message += `*Cliente:* ${suscripciones.nombreCliente}\n`;
+    message += `*Fecha:* ${new Date().toLocaleDateString('es-ES')}\n`;
+    message += `--------------------------------------\n\n`;
+
+    if (suscripciones.cuentasCompletas.length > 0) {
+      message += `*CUENTAS COMPLETAS ACTIVAS*\n`;
+      suscripciones.cuentasCompletas.forEach(c => {
+        message += `✅ *Servicio:* ${c.nombreServicio}\n`;
+        message += `   \`Correo: ${c.correo}\`\n`;
+        message += `   *Vence:* ${new Date(c.fechaRenovacion).toLocaleDateString('es-ES')}\n\n`;
+      });
+    }
+
+    if (suscripciones.perfilesIndividuales.length > 0) {
+      message += `*PERFILES INDIVIDUALES ACTIVOS*\n`;
+      suscripciones.perfilesIndividuales.forEach(p => {
+        message += `👤 *Perfil:* ${p.nombrePerfil} (${p.correoCuenta})\n`;
+        message += `   *Vence:* ${new Date(p.fechaRenovacion).toLocaleDateString('es-ES')}\n\n`;
+      });
+    }
+    
+    message += `--------------------------------------\n`;
+    message += `Gracias por su preferencia.`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const phone = suscripciones.numeroCliente.replace(/\D/g, '');
+    window.open(`https://wa.me/${phone}?text=${encodedMessage}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const DetailRow = ({ label, value }: { label: string, value: string | React.ReactNode }) => (
+    <div className="flex justify-between items-center py-2 border-b border-slate-200">
+        <p className="text-sm text-slate-600">{label}</p>
+        <p className="text-sm font-semibold text-slate-800 text-right">{value}</p>
+    </div>
   );
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
       <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative bg-slate-800/80 backdrop-blur-lg border border-slate-700 p-6 rounded-2xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-700 flex-shrink-0">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Suscripciones de {suscripciones.nombreCliente}</h2>
-            <p className="text-slate-400">Teléfono: {suscripciones.numeroCliente}</p>
-          </div>
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-3"><ShoppingBag className="text-blue-400"/>Detalle de Compras</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white hover:bg-slate-700 p-1 rounded-full transition-colors"><X size={20} /></button>
         </div>
-        <div className="overflow-y-auto pr-2 space-y-6">
-          <div>
-            <h3 className="text-xl font-semibold text-blue-300 mb-3 flex items-center gap-2"><Tv size={20}/> Cuentas Completas</h3>
-            {suscripciones.cuentasCompletas.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {suscripciones.cuentasCompletas.map(cuenta => (
-                  <SubscriptionCard key={cuenta.cuentaId}>
-                    <div className="flex items-center gap-4 mb-3">
-                      <Image src={cuenta.urlImgServicio} alt={cuenta.nombreServicio} width={40} height={40} className="rounded-md" />
-                      <div>
-                        <p className="font-bold text-lg text-white">{cuenta.nombreServicio}</p>
-                        <p className="text-sm text-slate-300 font-mono">{cuenta.correo}</p>
-                      </div>
+        <div className="flex flex-col sm:flex-row gap-3 mb-4 flex-shrink-0">
+            <button onClick={handleDownloadPDF} className="btn-secondary-dark w-full sm:w-auto !bg-red-500/20 !border-red-500/30 !text-red-300 hover:!bg-red-500/30"><Download size={16}/> Descargar PDF</button>
+            <button onClick={handleSendWhatsApp} className="btn-secondary-dark w-full sm:w-auto !bg-green-500/20 !border-green-500/30 !text-green-300 hover:!bg-green-500/30"><Send size={16}/> Enviar por WhatsApp</button>
+        </div>
+        <div className="overflow-y-auto pr-2">
+            <div ref={receiptRef} className="bg-white text-black p-8 rounded-lg font-sans">
+                <header className="flex justify-between items-center pb-4 border-b-2 border-slate-200">
+                    <div>
+                        <h1 className="text-3xl font-bold text-slate-800">SISTEMASVIP.SHOP</h1>
+                        <p className="text-slate-500">Estado de Cuenta</p>
                     </div>
-                    <div className="text-sm space-y-1 border-t border-slate-600 pt-2">
-                       <p className="flex items-center gap-2"><Calendar size={14} className="text-slate-400"/> Inicio: {new Date(cuenta.fechaInicio).toLocaleDateString('es-ES')}</p>
-                       <p className="flex items-center gap-2"><Calendar size={14} className="text-slate-400"/> Vence: <strong className="text-yellow-300">{new Date(cuenta.fechaRenovacion).toLocaleDateString('es-ES')}</strong></p>
+                    <div className="text-right">
+                        <p className="font-semibold">{suscripciones.nombreCliente}</p>
+                        <p className="text-sm text-slate-600">{suscripciones.numeroCliente}</p>
+                        <p className="text-sm text-slate-600">Fecha: {new Date().toLocaleDateString('es-ES')}</p>
                     </div>
-                  </SubscriptionCard>
-                ))}
-              </div>
-            ) : <p className="text-slate-400 italic text-sm">No tiene cuentas completas activas.</p>}
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold text-purple-300 mb-3 flex items-center gap-2"><UserIcon size={20}/> Perfiles Individuales</h3>
-            {suscripciones.perfilesIndividuales.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {suscripciones.perfilesIndividuales.map(perfil => (
-                  <SubscriptionCard key={perfil.id}>
-                    <div className="flex items-center gap-4 mb-3">
-                      <Image src={perfil.urlImg} alt="Servicio" width={40} height={40} className="rounded-md" />
-                      <div>
-                        <p className="font-bold text-lg text-white">Perfil: {perfil.nombrePerfil}</p>
-                        <p className="text-sm text-slate-300 font-mono">{perfil.correoCuenta}</p>
-                      </div>
-                    </div>
-                    <div className="text-sm space-y-1 border-t border-slate-600 pt-2">
-                       <p className="flex items-center gap-2"><Tag size={14} className="text-slate-400"/> Precio: S/. {perfil.precioVenta.toFixed(2)}</p>
-                       <p className="flex items-center gap-2"><Calendar size={14} className="text-slate-400"/> Inicio: {new Date(perfil.fechaInicio).toLocaleDateString('es-ES')}</p>
-                       <p className="flex items-center gap-2"><Calendar size={14} className="text-slate-400"/> Vence: <strong className="text-yellow-300">{new Date(perfil.fechaRenovacion).toLocaleDateString('es-ES')}</strong></p>
-                    </div>
-                  </SubscriptionCard>
-                ))}
-              </div>
-            ) : <p className="text-slate-400 italic text-sm">No tiene perfiles individuales activos.</p>}
-          </div>
+                </header>
+                <main className="mt-6">
+                    {suscripciones.cuentasCompletas.length > 0 && (
+                        <section className="mb-6">
+                            <h3 className="text-lg font-bold text-slate-800 border-b border-slate-300 pb-2 mb-3">Cuentas Completas</h3>
+                            {suscripciones.cuentasCompletas.map(c => (
+                                <div key={c.cuentaId} className="mb-4 p-4 bg-slate-50 rounded-md border border-slate-200">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <Image src={c.urlImgServicio} alt={c.nombreServicio} width={32} height={32} className="rounded-md"/>
+                                        <p className="font-bold text-lg">{c.nombreServicio}</p>
+                                    </div>
+                                    <DetailRow label="Correo" value={<code className="text-sm bg-slate-200 px-1 rounded">{c.correo}</code>} />
+                                    <DetailRow label="Fecha de Inicio" value={new Date(c.fechaInicio).toLocaleDateString('es-ES')} />
+                                    <DetailRow label="Próxima Renovación" value={<strong className="text-blue-600">{new Date(c.fechaRenovacion).toLocaleDateString('es-ES')}</strong>} />
+                                </div>
+                            ))}
+                        </section>
+                    )}
+                    {suscripciones.perfilesIndividuales.length > 0 && (
+                        <section>
+                            <h3 className="text-lg font-bold text-slate-800 border-b border-slate-300 pb-2 mb-3">Perfiles Individuales</h3>
+                            {suscripciones.perfilesIndividuales.map(p => (
+                                <div key={p.id} className="mb-4 p-4 bg-slate-50 rounded-md border border-slate-200">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <Image src={p.urlImg} alt="Servicio" width={32} height={32} className="rounded-md"/>
+                                        <p className="font-bold text-lg">Perfil: {p.nombrePerfil}</p>
+                                    </div>
+                                    <DetailRow label="Cuenta Asociada" value={<code className="text-sm bg-slate-200 px-1 rounded">{p.correoCuenta}</code>} />
+                                    <DetailRow label="Precio" value={`S/. ${p.precioVenta.toFixed(2)}`} />
+                                    <DetailRow label="Fecha de Inicio" value={new Date(p.fechaInicio).toLocaleDateString('es-ES')} />
+                                    <DetailRow label="Próxima Renovación" value={<strong className="text-blue-600">{new Date(p.fechaRenovacion).toLocaleDateString('es-ES')}</strong>} />
+                                </div>
+                            ))}
+                        </section>
+                    )}
+                </main>
+                <footer className="mt-8 pt-4 border-t-2 border-slate-200 text-center text-xs text-slate-500">
+                    <p>Gracias por su preferencia.</p>
+                    <p>SISTEMASVIP.SHOP - Todos los derechos reservados.</p>
+                </footer>
+            </div>
         </div>
       </motion.div>
     </div>
@@ -580,6 +648,222 @@ export default function ClientesPage() {
         handleCloseModal();
     };
 
+
+
+
+
+
+const SuscripcionModal = ({ isOpen, onClose, suscripciones }: {
+  isOpen: boolean;
+  onClose: () => void;
+  suscripciones: SuscripcionCliente | null;
+}) => {
+  const handleSendWhatsApp = (data: CuentaCompletaSuscripcion | PerfilIndividualSuscripcion) => {
+    // Verificación robusta de número de teléfono
+    if (!suscripciones?.numeroCliente || suscripciones.numeroCliente.trim() === '') {
+      toast.error('Este cliente no tiene un número de teléfono válido registrado.');
+      return;
+    }
+
+    // Limpiar y formatear el número
+    let phone = suscripciones.numeroCliente.replace(/\D/g, '');
+    
+    // Verificar si ya tiene código de país
+    if (!phone.startsWith('51') && phone.length === 9) {
+      phone = `51${phone}`; // Agregar código de país para Perú
+    }
+    
+    // Validar longitud del número
+    if (phone.length < 10 || phone.length > 15) {
+      toast.error(`Número inválido: ${phone} (longitud: ${phone.length} dígitos)`);
+      return;
+    }
+
+    // Construir mensaje
+    let message = `👋 Hola *${suscripciones.nombreCliente}*, aquí tienes los detalles de tu compra:\n\n`;
+
+    if ('nombreServicio' in data) {
+      message += `*Servicio:* ${data.nombreServicio}\n`;
+      message += `*Correo:* \`${data.correo}\`\n`;
+      message += `*Contraseña:* \`${(data as any).contraseña || 'No disponible'}\`\n`;
+      message += `*Vence:* ${new Date(data.fechaRenovacion).toLocaleDateString('es-ES')}\n`;
+    } else {
+      message += `*Servicio:* Perfil Individual\n`;
+      message += `*Perfil:* ${data.nombrePerfil}\n`;
+      message += `*Cuenta:* \`${data.correoCuenta}\`\n`;
+      message += `*Contraseña:* \`${data.contraseña}\`\n`;
+      message += `*PIN:* \`${data.pin}\`\n`;
+      message += `*Vence:* ${new Date(data.fechaRenovacion).toLocaleDateString('es-ES')}\n`;
+    }
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${phone}?text=${encodedMessage}`;
+    const copyToClipboard = (text: string) => {
+  navigator.clipboard.writeText(text);
+  toast.success('Mensaje copiado al portapapeles');
+};
+
+<button onClick={() => copyToClipboard(message)} 
+        className="btn-secondary-dark mt-2">
+  <ClipboardIcon /> Copiar mensaje
+</button>
+    // SOLUCIÓN PRINCIPAL: Abrir en la misma pestaña
+    window.location.href = whatsappUrl;
+    
+   
+  };
+
+  if (!isOpen || !suscripciones) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }} 
+        animate={{ opacity: 1, scale: 1 }} 
+        exit={{ opacity: 0, scale: 0.9 }} 
+        className="relative bg-slate-800/80 backdrop-blur-lg border border-slate-700 p-6 rounded-2xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col"
+      >
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-700 flex-shrink-0">
+
+          <div>
+            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+              <ShoppingBag className="text-blue-400"/>Compras de {suscripciones.nombreCliente}
+            </h2>
+            <p className="text-slate-400 flex items-center gap-2">
+             <PhoneCall className="text-blue-400"/> Teléfono: {suscripciones.numeroCliente || 'No registrado'}
+            </p>
+            
+          </div>
+          <button 
+            onClick={onClose} 
+            className="text-slate-400 hover:text-white hover:bg-slate-700 p-1 rounded-full transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto pr-2 space-y-6">
+          {/* Sección de cuentas completas */}
+          <div>
+            <h3 className="text-xl font-semibold text-blue-300 mb-3 flex items-center gap-2">
+              <Tv size={20}/> Cuentas Completas
+            </h3>
+            {suscripciones.cuentasCompletas.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {suscripciones.cuentasCompletas.map(cuenta => (
+                  <div key={cuenta.cuentaId} className="bg-slate-700/50 p-4 rounded-lg border border-slate-600/50 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center gap-4 mb-3">
+                        <Image 
+                          src={cuenta.urlImgServicio} 
+                          alt={cuenta.nombreServicio} 
+                          width={40} 
+                          height={40} 
+                          className="rounded-md" 
+                        />
+                        <div>
+                          <p className="font-bold text-lg text-white">{cuenta.nombreServicio}</p>
+                          <div className="flex items-center gap-2">
+                          <MdEmail className="text-blue-400 flex items-center"/> <p className="flex text-sm text-slate-300 font-mono">{cuenta.correo}</p>
+                       </div>
+                        </div>
+                      </div>
+                      <div className="text-sm space-y-2">
+                        <p className="flex justify-between">
+                          <span>Inicio:</span> 
+                          <span>{new Date(cuenta.fechaInicio).toLocaleDateString('es-ES')}</span>
+                        </p>
+                        <p className="flex justify-between">
+                          <span>Vence:</span> 
+                          <strong className="text-yellow-300">
+                            {new Date(cuenta.fechaRenovacion).toLocaleDateString('es-ES')}
+                          </strong>
+                        </p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => handleSendWhatsApp(cuenta)} 
+                      className="btn-secondary-dark w-full mt-4 !bg-green-500/10 hover:!bg-green-500/20 !text-green-300"
+                    >
+                      <WhatsAppIcon className="w-4 h-4" /> Enviar Datos
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-slate-400 italic text-sm">No tiene cuentas completas activas.</p>
+            )}
+          </div>
+
+          {/* Sección de perfiles individuales */}
+          <div>
+            <h3 className="text-xl font-semibold text-purple-300 mb-3 flex items-center gap-2">
+              <UserIcon size={20}/> Perfiles Individuales
+            </h3>
+            {suscripciones.perfilesIndividuales.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {suscripciones.perfilesIndividuales.map(perfil => (
+                  <div key={perfil.id} className="bg-slate-700/50 p-4 rounded-lg border border-slate-600/50 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center gap-4 mb-3">
+                        <Image 
+                          src={perfil.urlImg} 
+                          alt="Servicio" 
+                          width={40} 
+                          height={40} 
+                          className="rounded-md" 
+                        />
+                        <div>
+                          <p className="font-bold text-lg text-white">Perfil: {perfil.nombrePerfil}</p>
+                          <p className="text-sm text-slate-300 font-mono">{perfil.correoCuenta}</p>
+                        </div>
+                      </div>
+                      <div className="text-sm space-y-2">
+                        <p className="flex justify-between">
+                          <span>Precio:</span> 
+                          <span>S/. {perfil.precioVenta.toFixed(2)}</span>
+                        </p>
+                        <p className="flex justify-between">
+                          <span>Inicio:</span> 
+                          <span>{new Date(perfil.fechaInicio).toLocaleDateString('es-ES')}</span>
+                        </p>
+                        <p className="flex justify-between">
+                          <span>Vence:</span> 
+                          <strong className="text-yellow-300">
+                            {new Date(perfil.fechaRenovacion).toLocaleDateString('es-ES')}
+                          </strong>
+                        </p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => handleSendWhatsApp(perfil)} 
+                      className="btn-secondary-dark w-full mt-4 !bg-green-500/10 hover:!bg-green-500/20 !text-green-300"
+                    >
+                      <WhatsAppIcon className="w-4 h-4" /> Enviar Datos
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-slate-400 italic text-sm">No tiene perfiles individuales activos.</p>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+
+
+
+
+
+
+
+
+
+
     const handleResponsibleWhatsAppClick = (client: Cliente, responsibleUser: User | undefined) => {
         if (!responsibleUser || !responsibleUser.telefono) {
             toast.error("El responsable no tiene un número de teléfono registrado.");
@@ -707,9 +991,8 @@ export default function ClientesPage() {
                                         <p className="flex items-center gap-2 text-slate-300"><Phone size={14} /> {client.numero || 'N/A'}</p>
                                         <p className="flex items-center gap-2 text-slate-300"><UserIcon size={14} /> Resp: {client.responsable || 'N/A'} {responsibleUser && <button onClick={() => handleResponsibleWhatsAppClick(client, responsibleUser)} className="text-green-400 hover:text-green-300"><WhatsAppIcon className="w-4 h-4" /></button>}</p>
                                     </div>
-                                    <div className="pt-3 border-t border-slate-700 grid grid-cols-2 gap-2">
-                                         <button onClick={() => handleOpenModal('history', client)} className="w-full btn-secondary-dark justify-center"><Eye size={16} /> Historial</button>
-                                         <button onClick={() => handleOpenSuscripcionesModal(client)} className="w-full btn-primary-dark justify-center"><Info size={16} /> Suscripciones</button>
+                                    <div className="pt-3 border-t border-slate-700">
+                                         <button onClick={() => handleOpenSuscripcionesModal(client)} className="w-full btn-primary-dark justify-center"><ShoppingBag size={16} /> Ver Compras</button>
                                     </div>
                                 </motion.div>
                                 )})}
@@ -736,10 +1019,7 @@ export default function ClientesPage() {
                 {isModalOpen && modalMode === 'bulk-create' && (
                     <BulkCreateClientsModal isOpen={isModalOpen} onClose={handleCloseModal} onSaveSuccess={handleSaveSuccess} />
                 )}
-                {isModalOpen && modalMode === 'history' && (
-                    <ClientHistoryModal isOpen={isModalOpen} onClose={handleCloseModal} client={currentClient} accounts={cuentas} services={servicios} />
-                )}
-
+               
                 <AnimatePresence>
                 {isModalOpen && modalMode === 'delete' && (
                     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -773,5 +1053,5 @@ export default function ClientesPage() {
                 .btn-danger-dark:hover { background-color: #9f1239; }
             `}</style>
         </div>
-    );
+    )
 }

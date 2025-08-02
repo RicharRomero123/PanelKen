@@ -68,6 +68,9 @@ export const liberarPerfil = async (perfilId: number) => {
   }
 };
 
+
+// --- FUNCIÓN CORREGIDA ---
+// Ahora recibe 'usuarioId' como un parámetro y no usa Hooks.
 export const renovarPerfil = async (perfilId: number, nuevoPrecio: number, usuarioId: number): Promise<any> => {
     try {
         const response = await axiosClient.patch(`/cuentas/perfiles/${perfilId}/renovar-suscripcion`, {
@@ -79,9 +82,11 @@ export const renovarPerfil = async (perfilId: number, nuevoPrecio: number, usuar
         throw error;
     }
 };
+
 export const renovarCuentaCompleta = async (cuentaId: number, nuevoPrecio: number, usuarioId: number): Promise<any> => {
     try {
-        const response = await axiosClient.patch(`/cuentas/${cuentaId}/renovar-suscripcion`, {
+        // CORRECCIÓN: Se añade 'comple' al final de la URL
+        const response = await axiosClient.patch(`/cuentas/${cuentaId}/renovar-suscripcioncomple`, { 
             nuevoPrecioVenta: nuevoPrecio,
             usuarioId: usuarioId
         });

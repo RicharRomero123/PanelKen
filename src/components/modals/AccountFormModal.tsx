@@ -1,5 +1,4 @@
-// FILE: src/app/admin/cuentas/components/modals/AccountFormModal.tsx (Corregido)
-"use client";
+'use client';
 
 import { useState, useEffect, useMemo, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,8 +6,7 @@ import { KeyRound, X, RefreshCw, Plus, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createCuenta, updateCuenta } from '../../services/cuentaService';
 
-// --- DEFINICIONES DE TIPOS LOCALES (CORREGIDO) ---
-// Se añade el nuevo estado REPORTADO para que coincida con el componente padre.
+// --- DEFINICIONES DE TIPOS ---
 enum StatusCuenta { ACTIVO = "ACTIVO", VENCIDO = "VENCIDO", REEMPLAZADA = "REEMPLAZADA", REPORTADO = "REPORTADO", SINUSAR = "SINUSAR" }
 enum TipoCuenta { INDIVIDUAL = "INDIVIDUAL", COMPLETO = "COMPLETO" }
 interface Cuenta { id: number; correo: string; contraseña: string; pin: string; perfilesOcupados: number; perfilesMaximos: number; enlace: string; fechaInicio: string; fechaRenovacion: string; status: StatusCuenta; tipoCuenta: TipoCuenta; precioVenta: number; clienteId: number | null; servicioId: number; }
@@ -55,10 +53,17 @@ export const AccountFormModal = ({ isOpen, onClose, mode, account, services, onS
         const loadingToast = toast.loading(mode === 'add' ? 'Creando cuenta...' : 'Actualizando cuenta...');
         
         try {
+            // Se preparan todos los datos del formulario para ser enviados.
+            // Esto incluye las fechas de inicio y renovación si son visibles.
             const dataToSend: any = { ...formData, perfilesMaximos: Number(formData.perfilesMaximos) };
+            
             if (mode === 'add') {
                 await createCuenta(dataToSend);
             } else if (mode === 'edit' && account) {
+                // --- LÓGICA CLAVE ---
+                // Aquí se llama a 'updateCuenta' cuando estás en modo de edición.
+                // Se pasa el ID de la cuenta y todos los datos del formulario (dataToSend),
+                // lo que actualiza la cuenta de raíz, incluyendo las fechas.
                 await updateCuenta(account.id, dataToSend);
             }
             
@@ -89,6 +94,12 @@ export const AccountFormModal = ({ isOpen, onClose, mode, account, services, onS
                         <div><label className="label-style">Contraseña</label><input type="text" name="contraseña" value={formData.contraseña} onChange={handleInputChange} className="input-style-dark p-3" /></div>
                         <div><label className="label-style">PIN</label><input type="text" name="pin" value={formData.pin} onChange={handleInputChange} className="input-style-dark p-3" /></div>
                         <div><label className="label-style">Tipo de Venta</label><select name="tipoCuenta" value={formData.tipoCuenta} onChange={handleInputChange} className="input-style-dark p-3">{Object.values(TipoCuenta).map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                        {formData.tipoCuenta === TipoCuenta.COMPLETO && (
+                            <>
+                                <div><label className="label-style">Fecha de Inicio</label><input type="date" name="fechaInicio" value={formData.fechaInicio} onChange={handleInputChange} className="input-style-dark p-3" required /></div>
+                                <div><label className="label-style">Fecha de Renovación</label><input type="date" name="fechaRenovacion" value={formData.fechaRenovacion} onChange={handleInputChange} className="input-style-dark p-3" required /></div>
+                            </>
+                        )}
                         {formData.tipoCuenta === TipoCuenta.INDIVIDUAL && (
                             <div><label className="label-style">Capacidad de Perfiles</label><input type="number" name="perfilesMaximos" value={formData.perfilesMaximos || ''} onChange={handleInputChange} className="input-style-dark p-3" min="1" placeholder="Ej: 5" /></div>
                         )}

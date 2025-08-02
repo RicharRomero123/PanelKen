@@ -7,8 +7,10 @@ import {
     getResumenVentasDiarias, 
     getListaVentasDiarias,
     getTopClientesDiarios,
-    getTopClientesSemanales, // <-- Nueva importación
+    getTopClientesSemanales
 } from '../../../services/ventaCuentaService';
+// CORRECCIÓN: Se importa 'getClienteSuscripciones' del servicio correcto.
+import { getAllClientes, getClienteSuscripciones } from '../../../services/clienteService'; 
 import { getAllServicios } from '../../../services/servicioService';
 import { searchCuentas } from '../../../services/cuentaService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -18,7 +20,6 @@ import { DollarSign, TrendingUp, Calendar, RefreshCw, ChevronLeft, ChevronRight,
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '../../../context/AuthContext';
-import { getAllClientes, getClienteSuscripciones } from '@/services/clienteService';
 
 // --- DEFINICIONES DE TIPOS ---
 
@@ -27,7 +28,6 @@ enum RolUsuario {
     TRABAJADOR = "TRABAJADOR",
 }
 
-// Tipos para el detalle de suscripciones
 interface CuentaCompletaSuscripcion {
   cuentaId: number;
   correo: string;
@@ -144,42 +144,76 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return null;
 };
 
-const TopClientsCard = ({ title, clients, onClientClick }: { title: string; clients: TopCliente[]; onClientClick: (client: TopCliente) => void; }) => (
-    <div className="bg-slate-800/60 border border-slate-700/80 p-4 sm:p-6 rounded-xl shadow-lg flex flex-col">
-        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Crown className="text-yellow-400"/> {title}</h2>
-        <div className="flex-grow space-y-3 overflow-y-auto">
-            {clients.length > 0 ? clients.map((client, index) => (
-                <button key={client.clienteId} onClick={() => onClientClick(client)} className="w-full text-left flex items-center justify-between bg-slate-800/70 p-3 rounded-lg hover:bg-slate-700/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                        <span className="text-sm font-bold text-slate-400">{index + 1}.</span>
-                        <div>
-                            <p className="font-semibold text-white">{client.nombreCliente}</p>
-                            <p className="text-xs text-slate-500">{client.numeroCliente}</p>
+const TopClientsCard = ({ title, clients, onClientClick }: { title: string; clients: TopCliente[]; onClientClick: (client: TopCliente) => void; }) => {
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
+    const totalPages = Math.ceil(clients.length / itemsPerPage);
+    const paginatedClients = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return clients.slice(startIndex, startIndex + itemsPerPage);
+    }, [clients, currentPage]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [clients]);
+
+    return (
+        <div className="bg-slate-800/60 border border-slate-700/80 p-4 sm:p-6 rounded-xl shadow-lg flex flex-col">
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Crown className="text-yellow-400"/> {title}</h2>
+            <div className="flex-grow space-y-3 overflow-y-auto">
+                {paginatedClients.length > 0 ? paginatedClients.map((client, index) => (
+                    <button key={client.clienteId} onClick={() => onClientClick(client)} className="w-full text-left flex items-center justify-between bg-slate-800/70 p-3 rounded-lg hover:bg-slate-700/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-bold text-slate-400">{(currentPage - 1) * itemsPerPage + index + 1}.</span>
+                            <div>
+                                <p className="font-semibold text-white">{client.nombreCliente}</p>
+                                <p className="text-xs text-slate-500">{client.numeroCliente}</p>
+                            </div>
                         </div>
+                        <div className="text-right">
+                            <span className="font-bold text-lg text-sky-400 flex items-center justify-end gap-1.5">
+                                {client.totalCompras}
+                                <ShoppingCart size={14} className="opacity-80"/>
+                            </span>
+                            <p className="text-xs text-slate-500 -mt-1">compras</p>
+                        </div>
+                    </button>
+                )) : (
+                    <div className="text-center py-10 flex-grow flex items-center justify-center">
+                        <p className="text-slate-400">No hay datos de clientes.</p>
                     </div>
-                    <div className="text-right">
-                        <span className="font-bold text-lg text-sky-400 flex items-center justify-end gap-1.5">
-                            {client.totalCompras}
-                            <ShoppingCart size={14} className="opacity-80"/>
-                        </span>
-                        <p className="text-xs text-slate-500 -mt-1">compras</p>
+                )}
+            </div>
+            {totalPages > 1 && (
+                <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-700">
+                    <span className="text-sm text-slate-400">Página {currentPage} de {totalPages}</span>
+                    <div className="flex gap-2">
+                        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft size={16}/></button>
+                        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight size={16}/></button>
                     </div>
-                </button>
-            )) : (
-                <div className="text-center py-10 flex-grow flex items-center justify-center">
-                    <p className="text-slate-400">No hay datos de clientes.</p>
                 </div>
             )}
         </div>
-    </div>
-);
+    );
+};
 
 const SuscripcionModal = ({ isOpen, onClose, suscripciones }: {
   isOpen: boolean;
   onClose: () => void;
   suscripciones: SuscripcionCliente | null;
 }) => {
+  const [currentPageCuentas, setCurrentPageCuentas] = useState(1);
+  const [currentPagePerfiles, setCurrentPagePerfiles] = useState(1);
+  const itemsPerPage = 10;
+
   if (!isOpen || !suscripciones) return null;
+
+  const totalPagesCuentas = Math.ceil(suscripciones.cuentasCompletas.length / itemsPerPage);
+  const paginatedCuentas = suscripciones.cuentasCompletas.slice((currentPageCuentas - 1) * itemsPerPage, currentPageCuentas * itemsPerPage);
+
+  const totalPagesPerfiles = Math.ceil(suscripciones.perfilesIndividuales.length / itemsPerPage);
+  const paginatedPerfiles = suscripciones.perfilesIndividuales.slice((currentPagePerfiles - 1) * itemsPerPage, currentPagePerfiles * itemsPerPage);
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -195,46 +229,68 @@ const SuscripcionModal = ({ isOpen, onClose, suscripciones }: {
           <div>
             <h3 className="text-xl font-semibold text-blue-300 mb-3 flex items-center gap-2"><Tv size={20}/> Cuentas Completas</h3>
             {suscripciones.cuentasCompletas.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {suscripciones.cuentasCompletas.map(cuenta => (
-                  <div key={cuenta.cuentaId} className="bg-slate-700/50 p-4 rounded-lg border border-slate-600/50 flex flex-col justify-between">
-                    <div className="flex items-center gap-4 mb-3">
-                        <Image src={cuenta.urlImgServicio} alt={cuenta.nombreServicio} width={40} height={40} className="rounded-md" />
-                        <div>
-                            <p className="font-bold text-lg text-white">{cuenta.nombreServicio}</p>
-                            <p className="text-sm text-slate-300 font-mono">{cuenta.correo}</p>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {paginatedCuentas.map(cuenta => (
+                    <div key={cuenta.cuentaId} className="bg-slate-700/50 p-4 rounded-lg border border-slate-600/50 flex flex-col justify-between">
+                      <div className="flex items-center gap-4 mb-3">
+                          <Image src={cuenta.urlImgServicio} alt={cuenta.nombreServicio} width={40} height={40} className="rounded-md" />
+                          <div>
+                              <p className="font-bold text-lg text-white">{cuenta.nombreServicio}</p>
+                              <p className="text-sm text-slate-300 font-mono">{cuenta.correo}</p>
+                          </div>
+                      </div>
+                      <div className="text-sm space-y-2">
+                          <p className="flex justify-between"><span>Inicio:</span> <span>{new Date(cuenta.fechaInicio).toLocaleDateString('es-ES')}</span></p>
+                          <p className="flex justify-between"><span>Vence:</span> <strong className="text-yellow-300">{new Date(cuenta.fechaRenovacion).toLocaleDateString('es-ES')}</strong></p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {totalPagesCuentas > 1 && (
+                    <div className="flex justify-between items-center mt-4">
+                        <span className="text-sm text-slate-400">Página {currentPageCuentas} de {totalPagesCuentas}</span>
+                        <div className="flex gap-2">
+                            <button onClick={() => setCurrentPageCuentas(p => Math.max(1, p - 1))} disabled={currentPageCuentas === 1} className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md disabled:opacity-50"><ChevronLeft size={16}/></button>
+                            <button onClick={() => setCurrentPageCuentas(p => Math.min(totalPagesCuentas, p + 1))} disabled={currentPageCuentas === totalPagesCuentas} className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md disabled:opacity-50"><ChevronRight size={16}/></button>
                         </div>
                     </div>
-                    <div className="text-sm space-y-2">
-                        <p className="flex justify-between"><span>Inicio:</span> <span>{new Date(cuenta.fechaInicio).toLocaleDateString('es-ES')}</span></p>
-                        <p className="flex justify-between"><span>Vence:</span> <strong className="text-yellow-300">{new Date(cuenta.fechaRenovacion).toLocaleDateString('es-ES')}</strong></p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                )}
+              </>
             ) : <p className="text-slate-400 italic text-sm">No tiene cuentas completas activas.</p>}
           </div>
           <div>
             <h3 className="text-xl font-semibold text-purple-300 mb-3 flex items-center gap-2"><UserIcon size={20}/> Perfiles Individuales</h3>
             {suscripciones.perfilesIndividuales.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {suscripciones.perfilesIndividuales.map(perfil => (
-                  <div key={perfil.id} className="bg-slate-700/50 p-4 rounded-lg border border-slate-600/50 flex flex-col justify-between">
-                    <div className="flex items-center gap-4 mb-3">
-                        <Image src={perfil.urlImg} alt="Servicio" width={40} height={40} className="rounded-md" />
-                        <div>
-                            <p className="font-bold text-lg text-white">Perfil: {perfil.nombrePerfil}</p>
-                            <p className="text-sm text-slate-300 font-mono">{perfil.correoCuenta}</p>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {paginatedPerfiles.map(perfil => (
+                    <div key={perfil.id} className="bg-slate-700/50 p-4 rounded-lg border border-slate-600/50 flex flex-col justify-between">
+                      <div className="flex items-center gap-4 mb-3">
+                          <Image src={perfil.urlImg} alt="Servicio" width={40} height={40} className="rounded-md" />
+                          <div>
+                              <p className="font-bold text-lg text-white">Perfil: {perfil.nombrePerfil}</p>
+                              <p className="text-sm text-slate-300 font-mono">{perfil.correoCuenta}</p>
+                          </div>
+                      </div>
+                      <div className="text-sm space-y-2">
+                          <p className="flex justify-between"><span>Precio:</span> <span>S/. {perfil.precioVenta.toFixed(2)}</span></p>
+                          <p className="flex justify-between"><span>Inicio:</span> <span>{new Date(perfil.fechaInicio).toLocaleDateString('es-ES')}</span></p>
+                          <p className="flex justify-between"><span>Vence:</span> <strong className="text-yellow-300">{new Date(perfil.fechaRenovacion).toLocaleDateString('es-ES')}</strong></p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {totalPagesPerfiles > 1 && (
+                    <div className="flex justify-between items-center mt-4">
+                        <span className="text-sm text-slate-400">Página {currentPagePerfiles} de {totalPagesPerfiles}</span>
+                        <div className="flex gap-2">
+                            <button onClick={() => setCurrentPagePerfiles(p => Math.max(1, p - 1))} disabled={currentPagePerfiles === 1} className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md disabled:opacity-50"><ChevronLeft size={16}/></button>
+                            <button onClick={() => setCurrentPagePerfiles(p => Math.min(totalPagesPerfiles, p + 1))} disabled={currentPagePerfiles === totalPagesPerfiles} className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md disabled:opacity-50"><ChevronRight size={16}/></button>
                         </div>
                     </div>
-                    <div className="text-sm space-y-2">
-                        <p className="flex justify-between"><span>Precio:</span> <span>S/. {perfil.precioVenta.toFixed(2)}</span></p>
-                        <p className="flex justify-between"><span>Inicio:</span> <span>{new Date(perfil.fechaInicio).toLocaleDateString('es-ES')}</span></p>
-                        <p className="flex justify-between"><span>Vence:</span> <strong className="text-yellow-300">{new Date(perfil.fechaRenovacion).toLocaleDateString('es-ES')}</strong></p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                )}
+              </>
             ) : <p className="text-slate-400 italic text-sm">No tiene perfiles individuales activos.</p>}
           </div>
         </div>
@@ -256,12 +312,11 @@ export default function VentasPage() {
     const [dataLoading, setDataLoading] = useState<boolean>(true);
     const [view, setView] = useState<'daily' | 'monthly'>('daily');
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 8;
+    const itemsPerPage = 10;
     
     const [topDailyClients, setTopDailyClients] = useState<TopCliente[]>([]);
     const [topWeeklyClients, setTopWeeklyClients] = useState<TopCliente[]>([]);
 
-    // Estados para el modal de suscripciones
     const [suscripciones, setSuscripciones] = useState<SuscripcionCliente | null>(null);
     const [isSuscripcionModalOpen, setIsSuscripcionModalOpen] = useState(false);
 
@@ -312,7 +367,6 @@ export default function VentasPage() {
         }
     }, [fetchData, isAuthorized, authLoading]);
 
-    // Lógica para abrir/cerrar modal de suscripciones
     const handleOpenSuscripcionesModal = async (cliente: TopCliente) => {
         const loadingToast = toast.loading("Cargando suscripciones...");
         try {

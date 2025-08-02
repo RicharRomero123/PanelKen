@@ -1,21 +1,19 @@
-// FILE: src/app/admin/cuentas/components/CuentasContainer.tsx
-"use client";
+'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
-import { KeyRound, RefreshCw, AlertTriangle, X, UserPlus, Eye, Repeat, Edit, Trash2, DollarSign, ArchiveRestore } from 'lucide-react';
+import { KeyRound, RefreshCw, AlertTriangle, X, UserPlus, Eye, Repeat, Edit, Trash2, DollarSign, ArchiveRestore, Inbox, CheckCircle, Clock, Flag } from 'lucide-react';
 import Image from 'next/image';
-import Cookies from 'js-cookie'; // Añadir esta importación
+import Cookies from 'js-cookie';
 
 // --- SERVICIOS ---
 import { getAllCuentas, deleteCuenta, updateCuenta, getPerfilesVencidos, renovarPerfil, renovarCuentaCompleta } from '../services/cuentaService';
 import { getAllServicios } from '../services/servicioService';
 import { getAllClientes } from '../services/clienteService';
 
-// --- COMPONENTES HIJOS ---
+// --- COMPONENTES HIJOS (Importados) ---
 import { CuentasToolbar } from './CuentasToolbar';
-import { CuentasTabs } from './CuentasTabs';
 import { CuentasTable, ColumnDefinition } from './CuentasTable';
 import { PerfilesVencidosTable } from './PerfilesVencidosTable';
 import { AccountFormModal } from './modals/AccountFormModal';
@@ -56,8 +54,7 @@ export interface PerfilVencido {
     id: number; nombrePerfil: string; clienteId: number; 
     nombreCliente: string; fechaInicio: string; 
     fechaRenovacion: string; precioVenta: number; correoCuenta: string; urlImg: string;
-  numero: string;  pin: string;
-
+    numero: string;  pin: string;
 }
 export interface User {
     id: number;
@@ -66,6 +63,71 @@ export interface User {
     telefono: string;
     rolUsuario: string;
 }
+
+// --- COMPONENTE DE PESTAÑAS CON CONTADORES (INTEGRADO) ---
+type ActiveTab = 'stock' | 'sold' | 'fallen' | 'reported' | 'vencido';
+
+interface CuentasTabsProps {
+    activeTab: ActiveTab;
+    setActiveTab: (tab: ActiveTab) => void;
+    setSelectedAccounts: React.Dispatch<React.SetStateAction<number[]>>;
+    counts: {
+        stock: number;
+        sold: number;
+        fallen: number;
+        reported: number;
+        vencido: number;
+    };
+}
+
+export const CuentasTabs = ({ activeTab, setActiveTab, setSelectedAccounts, counts }: CuentasTabsProps) => {
+    
+    const handleTabClick = (tab: ActiveTab) => {
+        setActiveTab(tab);
+        setSelectedAccounts([]);
+    };
+
+    return (
+        <div className="mb-6 border-b border-slate-700 flex flex-wrap">
+            <button 
+                onClick={() => handleTabClick('stock')} 
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'stock' ? 'border-blue-500 text-white' : 'border-transparent text-slate-400 hover:text-white'}`}
+            >
+                <Inbox size={16} /> En Stock
+                <span className="ml-2 bg-slate-700 text-slate-300 text-xs font-bold px-2 py-0.5 rounded-full">{counts.stock}</span>
+            </button>
+            <button 
+                onClick={() => handleTabClick('sold')} 
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'sold' ? 'border-green-500 text-white' : 'border-transparent text-slate-400 hover:text-white'}`}
+            >
+                <CheckCircle size={16} /> Vendidas
+                <span className="ml-2 bg-slate-700 text-slate-300 text-xs font-bold px-2 py-0.5 rounded-full">{counts.sold}</span>
+            </button>
+            <button 
+                onClick={() => handleTabClick('vencido')} 
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'vencido' ? 'border-yellow-500 text-white' : 'border-transparent text-slate-400 hover:text-white'}`}
+            >
+                <Clock size={16} /> Vencidas
+                <span className="ml-2 bg-slate-700 text-slate-300 text-xs font-bold px-2 py-0.5 rounded-full">{counts.vencido}</span>
+            </button>
+            <button 
+                onClick={() => handleTabClick('reported')} 
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'reported' ? 'border-orange-500 text-white' : 'border-transparent text-slate-400 hover:text-white'}`}
+            >
+                <Flag size={16} /> Reportadas
+                <span className="ml-2 bg-slate-700 text-slate-300 text-xs font-bold px-2 py-0.5 rounded-full">{counts.reported}</span>
+            </button>
+            <button 
+                onClick={() => handleTabClick('fallen')} 
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'fallen' ? 'border-red-500 text-white' : 'border-transparent text-slate-400 hover:text-white'}`}
+            >
+                <AlertTriangle size={16} /> Reemplazadas
+                <span className="ml-2 bg-slate-700 text-slate-300 text-xs font-bold px-2 py-0.5 rounded-full">{counts.fallen}</span>
+            </button>
+        </div>
+    );
+};
+
 export function CuentasContainer() {
     const [cuentas, setCuentas] = useState<Cuenta[]>([]);
     const [servicios, setServicios] = useState<Servicio[]>([]);
@@ -77,8 +139,8 @@ export function CuentasContainer() {
     const [modalState, setModalState] = useState<{ mode: string | null; account: Cuenta | null }>({ mode: null, account: null });
     const [selectedAccounts, setSelectedAccounts] = useState<number[]>([]);
     const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-    const [usuarios, setUsuarios] = useState<User[]>([]); // Lista de usuarios
-const [newRenewPrice, setNewRenewPrice] = useState<number | ''>('');
+    const [usuarios, setUsuarios] = useState<User[]>([]);
+    const [newRenewPrice, setNewRenewPrice] = useState<number | ''>('');
 
     
     const fetchData = useCallback(async () => {
@@ -89,22 +151,21 @@ const [newRenewPrice, setNewRenewPrice] = useState<number | ''>('');
                 getAllServicios(), 
                 getAllClientes(),
                 getPerfilesVencidos(),
-                getAllUsers() // Añadir esta llamada para obtener los usuarios
+                getAllUsers()
             ]);
             
-            // Sanitize data to ensure correo is never null
-             const sanitizedAccounts = accountsData.map(account => ({
+            const sanitizedAccounts = accountsData.map(account => ({
                 ...account,
                 correo: account.correo || '',
                 contraseña: account.contraseña || ''
             }));
             
-             setCuentas(sanitizedAccounts);
+            setCuentas(sanitizedAccounts);
             setServicios(servicesData);
             setClientes(clientsData);
             setPerfilesVencidos(perfilesData);
             setUsuarios(usersData);
-        if (usersData.length > 0) {
+            if (usersData.length > 0 && !selectedUserId) {
                 setSelectedUserId(usersData[0].id);
             }
         } catch (err) {
@@ -112,29 +173,29 @@ const [newRenewPrice, setNewRenewPrice] = useState<number | ''>('');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [selectedUserId]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
-const handleOpenModal = (mode: string, account: Cuenta | null = null) => {
-    setModalState({ mode, account });
-    if (mode === 'renew-account') {
-        setNewRenewPrice('');
-    }
-};
+
+    const handleOpenModal = (mode: string, account: Cuenta | null = null) => {
+        setModalState({ mode, account });
+        if (mode === 'renew-account') {
+            setNewRenewPrice('');
+        }
+    };
+
     const handleRenewAccount = async (cuentaId: number, nuevoPrecio: number) => {
         if (!selectedUserId) {
-            toast.error('Por favor selecciona un usuario para realizar la renovación');
+            toast.error('Por favor selecciona un usuario para realizar la renovación.');
             return;
         }
         
         const loadingToast = toast.loading("Renovando cuenta...");
         try {
+            // **CORRECCIÓN:** Se envía el `selectedUserId` que es el ID del usuario que realiza la acción.
             await renovarCuentaCompleta(cuentaId, nuevoPrecio, selectedUserId);
-            
             toast.dismiss(loadingToast);
             toast.success("Cuenta renovada correctamente");
-            
-            // Actualizar estado
             fetchData();
         } catch (err: any) {
             toast.dismiss(loadingToast);
@@ -143,27 +204,25 @@ const handleOpenModal = (mode: string, account: Cuenta | null = null) => {
     };
     
     const handleRenewProfile = async (perfilId: number, nuevoPrecio: number) => {
-    if (!selectedUserId) {
-        toast.error('Por favor selecciona un usuario para realizar la renovación');
-        return;
-    }
-    const [cuentas, setCuentas] = useState<Cuenta[]>([]);
-
-    const loadingToast = toast.loading("Renovando perfil...");
-    try {
-        // Usar selectedUserId en lugar de getCurrentUserId()
-        await renovarPerfil(perfilId, nuevoPrecio, selectedUserId);
+        if (!selectedUserId) {
+            toast.error('Por favor selecciona un usuario para realizar la renovación.');
+            return;
+        }
         
-        toast.dismiss(loadingToast);
-        toast.success("Perfil renovado correctamente");
-        
-        // Actualizar estado
-        setPerfilesVencidos(prev => prev.filter(p => p.id !== perfilId));
-    } catch (err: any) {
-        toast.dismiss(loadingToast);
-        toast.error(err.response?.data?.message || "Error al renovar el perfil");
-    }
-};
+        const loadingToast = toast.loading("Renovando perfil...");
+        try {
+            // **CORRECCIÓN:** Se envía el `selectedUserId` que es el ID del usuario que realiza la acción.
+            await renovarPerfil(perfilId, nuevoPrecio, selectedUserId);
+            
+            toast.dismiss(loadingToast);
+            toast.success("Perfil renovado correctamente");
+            
+            setPerfilesVencidos(prev => prev.filter(p => p.id !== perfilId));
+        } catch (err: any) {
+            toast.dismiss(loadingToast);
+            toast.error(err.response?.data?.message || "Error al renovar el perfil");
+        }
+    };
 
     const getProfileCount = (account: Cuenta): number => {
         return account.perfilesOcupados || 0;
@@ -176,10 +235,8 @@ const handleOpenModal = (mode: string, account: Cuenta | null = null) => {
         } else if (activeTab === 'sold') {
             sourceData = cuentas.filter(acc => acc.status === StatusCuenta.ACTIVO);
         } else if (activeTab === 'vencido') {
-            // Solo cuentas completas vencidas
             sourceData = cuentas.filter(acc => 
-                acc.status === StatusCuenta.VENCIDO && 
-                acc.tipoCuenta === TipoCuenta.COMPLETO
+                acc.status === StatusCuenta.VENCIDO && acc.tipoCuenta === TipoCuenta.COMPLETO
             );
         } else if (activeTab === 'reported') {
             sourceData = cuentas.filter(acc => acc.status === StatusCuenta.REPORTADO);
@@ -194,19 +251,8 @@ const handleOpenModal = (mode: string, account: Cuenta | null = null) => {
         });
     }, [cuentas, filters, activeTab]);
 
- 
-
     const handleCloseModal = () => setModalState({ mode: null, account: null });
-const tabCounts = useMemo(() => {
-    // La lógica de filtrado debe coincidir con la de tus pestañas
-    const stock = cuentas.filter(c => c.status === StatusCuenta.SINUSAR).length;
-    const sold = cuentas.filter(c => c.status === StatusCuenta.ACTIVO).length;
-    const vencido = cuentas.filter(c => c.status === StatusCuenta.VENCIDO).length;
-    const reported = cuentas.filter(c => c.status === StatusCuenta.REPORTADO).length;
-    const fallen = cuentas.filter(c => c.status === StatusCuenta.REEMPLAZADA).length;
 
-    return { stock, sold, vencido, reported, fallen };
-}, [cuentas]); // Se recalcula solo cuando el array de 'cuentas' cambia
     const handleSaveSuccess = (message: string) => {
         toast.success(message);
         setSelectedAccounts([]);
@@ -227,222 +273,15 @@ const tabCounts = useMemo(() => {
         }
     };
     
-   
-
-    const columns = useMemo((): ColumnDefinition<Cuenta>[] => {
-        const handleSelectAccount = (accountId: number) => {
-            setSelectedAccounts(prev => prev.includes(accountId) ? prev.filter(id => id !== accountId) : [...prev, accountId]);
+    const tabCounts = useMemo(() => {
+        return {
+            stock: cuentas.filter(c => c.status === StatusCuenta.SINUSAR).length,
+            sold: cuentas.filter(c => c.status === StatusCuenta.ACTIVO).length,
+            vencido: perfilesVencidos.length + cuentas.filter(c => c.status === StatusCuenta.VENCIDO && c.tipoCuenta === TipoCuenta.COMPLETO).length,
+            reported: cuentas.filter(c => c.status === StatusCuenta.REPORTADO).length,
+            fallen: cuentas.filter(c => c.status === StatusCuenta.REEMPLAZADA).length,
         };
-        
-        const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-            if (e.target.checked) {
-                const accountsToSelect = filteredCuentas.filter(acc => acc.tipoCuenta === TipoCuenta.COMPLETO).map(acc => acc.id);
-                setSelectedAccounts(accountsToSelect);
-            } else {
-                setSelectedAccounts([]);
-            }
-        };
-        
-        const displayDate = (dateString: string | null) => {
-            if (!dateString) return 'N/A';
-            const date = new Date(dateString.replace(/-/g, '/'));
-            return date.toLocaleDateString('es-PE', { 
-                day: '2-digit', 
-                month: '2-digit', 
-                year: 'numeric', 
-                timeZone: 'America/Lima' 
-            });
-        };
-
-        const baseColumns: ColumnDefinition<Cuenta>[] = [
-            { 
-                header: 'Cuenta', 
-                accessor: (account) => {
-                    const service = servicios.find(s => s.id === account.servicioId);
-                    return (
-                        <div className="flex items-center gap-3">
-                            {service && (
-                                <Image 
-                                    src={service.urlImg || 'https://placehold.co/40x40/1e293b/94a3b8?text=S'} 
-                                    alt={service.nombre} 
-                                    width={24} 
-                                    height={24} 
-                                    className="rounded-full object-cover" 
-                                />
-                            )}
-                            <div>
-                                <div className="font-medium text-white">{account.correo}</div>
-                                <div className="text-slate-400 text-xs font-mono">
-                                    Pass: {account.contraseña || 'N/A'}
-                                </div>
-                            </div>
-                        </div>
-                    )
-                }
-            },
-            { 
-                header: 'Estado', 
-                accessor: (account) => (
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(account.status)}`}>
-                        {account.status}
-                    </span>
-                ) 
-            },
-            { 
-                header: 'Tipo', 
-                accessor: (account) => (
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        account.tipoCuenta === 'INDIVIDUAL' 
-                            ? 'bg-purple-500/20 text-purple-300' 
-                            : 'bg-orange-500/20 text-orange-300'
-                    }`}>
-                        {account.tipoCuenta}
-                    </span>
-                ) 
-            },
-            { 
-                header: 'Perfiles', 
-                accessor: (account) => account.tipoCuenta === TipoCuenta.INDIVIDUAL ? (
-                    <div className="text-xs w-28">
-                        <p>{getProfileCount(account)} de {account.perfilesMaximos} usados</p>
-                        <div className="w-full bg-slate-700 rounded-full h-1.5 mt-1">
-                            <div 
-                                className="bg-blue-500 h-1.5 rounded-full" 
-                                style={{ 
-                                    width: `${(getProfileCount(account) / (account.perfilesMaximos || 1)) * 100}%` 
-                                }}
-                            />
-                        </div>
-                    </div>
-                ) : (
-                    <span className="text-slate-400">N/A</span>
-                )
-            },
-            { 
-                header: 'Cliente Principal', 
-                accessor: (account) => {
-                    const client = clientes.find(c => c.id === account.clienteId);
-                    return client ? `${client.nombre} ${client.apellido}` : <span className="text-slate-400">N/A</span>;
-                }
-            },
-            { 
-                header: 'Renovación', 
-                accessor: (account) => displayDate(account.fechaRenovacion) 
-            },
-            { 
-                header: 'Acciones', 
-                accessor: (account) => {
-                    const isReady = account.correo && account.contraseña;
-                    return (
-                        <div className="flex justify-center items-center gap-1.5">
-                            {activeTab === 'stock' && (
-                                <div className="relative group">
-                                    <button 
-                                        onClick={() => handleOpenModal('sell', account)} 
-                                        disabled={!isReady} 
-                                        className="btn-primary-dark text-xs !py-1 !px-2 disabled:!bg-slate-600 disabled:cursor-not-allowed"
-                                    >
-                                        <UserPlus size={14}/> Vender
-                                    </button>
-                                    {!isReady && <Tooltip text="Editar y completar datos para poder vender" />}
-                                </div>
-                            )}
-                            
-                            {activeTab === 'sold' && (
-                                <div className="relative group">
-                                    <button 
-                                        onClick={() => handleOpenModal('detail', account)} 
-                                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-md"
-                                    >
-                                        <Eye size={16} />
-                                    </button>
-                                    <Tooltip text="Ver Detalles" />
-                                </div>
-                            )}
-                            {activeTab === 'vencido' && (
-                                <div className="relative group">
-                                    <button 
-                                        onClick={() => handleOpenModal('renew-account', account)} 
-                                        className="p-2 text-green-400 bg-green-500/10 hover:bg-green-500/20 rounded-md"
-                                    >
-                                        <RefreshCw size={16} />
-                                    </button>
-                                    <Tooltip text="Renovar Cuenta" />
-                                </div>
-                            )}
-                            
-                            {activeTab === 'fallen' && (
-                                <>
-                                    <div className="relative group">
-                                        <button 
-                                            onClick={() => handleOpenModal('edit', account)} 
-                                            className="p-2 text-blue-400 hover:text-white hover:bg-blue-500/20 rounded-md"
-                                        >
-                                            <Edit size={16} />
-                                        </button>
-                                        <Tooltip text="Editar cuenta" />
-                                    </div>
-                                    <div className="relative group">
-                                        <button 
-                                            onClick={() => handleOpenModal('move-to-stock', account)} 
-                                            className="p-2 text-green-400 hover:text-white hover:bg-green-500/20 rounded-md"
-                                        >
-                                            <ArchiveRestore size={16} />
-                                        </button>
-                                        <Tooltip text="Mover a Stock" />
-                                    </div>
-                                </>
-                            )}
-                            
-                          {(activeTab === 'reported' || activeTab === 'vencido') && (
-    <div className="relative group">
-        <button 
-            onClick={() => handleOpenModal('change', account)} // Cambiado aquí
-            className="p-2 text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-md"
-        >
-            <Repeat size={16} />
-        </button>
-        <Tooltip text="Reemplazar Cuenta" />
-    </div>
-)}
-
-{activeTab === 'vencido' && (
-    <div className="relative group">
-        <button 
-            onClick={() => handleOpenModal('renew-account', account)} // Cambiado aquí
-            className="p-2 text-green-400 bg-green-500/10 hover:bg-green-500/20 rounded-md"
-        >
-            <RefreshCw size={16} />
-        </button>
-        <Tooltip text="Renovar Cuenta" />
-    </div>
-)}
-                        
-                        </div>
-                    );
-                }
-            }
-        ];
-
-        if (activeTab === 'stock') {
-            return [
-                { 
-                    header: <input type="checkbox" className="form-checkbox" onChange={handleSelectAll} />, 
-                    accessor: (account) => (
-                        <input 
-                            type="checkbox" 
-                            className="form-checkbox" 
-                            disabled={account.tipoCuenta !== TipoCuenta.COMPLETO} 
-                            checked={selectedAccounts.includes(account.id)} 
-                            onChange={() => handleSelectAccount(account.id)} 
-                        />
-                    ) 
-                },
-                ...baseColumns
-            ];
-        }
-        return baseColumns;
-    }, [activeTab, filteredCuentas, clientes, servicios, selectedAccounts]);
+    }, [cuentas, perfilesVencidos]);
 
     return (
         <div className="min-h-screen bg-slate-900 text-white p-4 sm:p-6 lg:p-8">
@@ -467,14 +306,13 @@ const tabCounts = useMemo(() => {
                     </div>
                     <CuentasToolbar onOpenModal={handleOpenModal} />
                 </div>
-                 {/* Selector de usuario para renovaciones */}
                 <div className="mb-4 bg-slate-800/50 p-3 rounded-lg flex flex-col md:flex-row gap-3 items-start md:items-center">
-                     <span className="font-semibold">Usuario que renueva:</span>
-    <select 
-        value={selectedUserId || ''}
-        onChange={(e) => setSelectedUserId(Number(e.target.value) || null)}
-        className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 min-w-[200px]"
-    >
+                    <span className="font-semibold">Usuario que renueva:</span>
+                    <select 
+                        value={selectedUserId || ''}
+                        onChange={(e) => setSelectedUserId(Number(e.target.value) || null)}
+                        className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 min-w-[200px]"
+                    >
                         {usuarios.length === 0 && (
                             <option value="">Cargando usuarios...</option>
                         )}
@@ -489,14 +327,12 @@ const tabCounts = useMemo(() => {
                     </p>
                 </div>
 
-               
-
-<CuentasTabs 
-    activeTab={activeTab} 
-    setActiveTab={setActiveTab} 
-    setSelectedAccounts={setSelectedAccounts} 
-    counts={tabCounts} // <-- Pasa el objeto con los conteos aquí
-/>
+                <CuentasTabs 
+                    activeTab={activeTab} 
+                    setActiveTab={setActiveTab} 
+                    setSelectedAccounts={setSelectedAccounts} 
+                    counts={tabCounts}
+                />
                 
                 <CuentasToolbar.Filters 
                     filters={filters} 
@@ -515,7 +351,7 @@ const tabCounts = useMemo(() => {
                                 Cuentas Completas Vencidas
                             </h2>
                             <CuentasTable
-                                cuentas={filteredCuentas}
+                                cuentas={cuentas.filter(acc => acc.status === StatusCuenta.VENCIDO && acc.tipoCuenta === TipoCuenta.COMPLETO)}
                                 clientes={clientes}
                                 servicios={servicios}
                                 activeTab={activeTab}
@@ -530,10 +366,10 @@ const tabCounts = useMemo(() => {
                                 Perfiles Individuales Vencidos
                             </h2>
                              <PerfilesVencidosTable 
-            perfiles={perfilesVencidos} 
-            clientes={clientes} 
-            onRenewProfile={handleRenewProfile} // Pasar la función como prop
-        />
+                                perfiles={perfilesVencidos} 
+                                clientes={clientes} 
+                                onRenewProfile={handleRenewProfile}
+                            />
                         </div>
                     </div>
                 ) : (
@@ -616,47 +452,6 @@ const tabCounts = useMemo(() => {
                             />
                         )}
                         
-                        {modalState.mode === 'move-to-stock' && modalState.account && (
-                            <AnimatePresence>
-                                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: 20, scale: 0.95 }} 
-                                        animate={{ opacity: 1, y: 0, scale: 1 }} 
-                                        exit={{ opacity: 0, y: 20, scale: 0.95 }} 
-                                        className="relative bg-slate-800/80 backdrop-blur-lg border border-slate-700 p-6 rounded-2xl shadow-2xl w-full max-w-md mx-4"
-                                    >
-                                        <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-700">
-                                            <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                                                <ArchiveRestore className="text-green-400"/>
-                                                Mover a Stock
-                                            </h2>
-                                            <button 
-                                                onClick={handleCloseModal} 
-                                                className="text-slate-400 hover:text-white hover:bg-slate-700 p-1 rounded-full transition-colors"
-                                            >
-                                                <X size={20} />
-                                            </button>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <p className="text-slate-300">
-                                                ¿Estás seguro de mover la cuenta <strong className="text-white">{modalState.account.correo}</strong> 
-                                                de vuelta al stock? Esto la marcará como disponible para venta.
-                                            </p>
-                                            <div className="flex justify-end gap-3 pt-4">
-                                                <button 
-                                                    onClick={handleCloseModal} 
-                                                    className="btn-secondary-dark"
-                                                >
-                                                    Cancelar
-                                                </button>
-                                                
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                </div>
-                            </AnimatePresence>
-                        )}
-                        
                         {modalState.mode === 'delete' && (
                             <AnimatePresence>
                                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -703,65 +498,64 @@ const tabCounts = useMemo(() => {
                             </AnimatePresence>
                         )}
                         {modalState.mode === 'renew-account' && modalState.account && (
-    <AnimatePresence>
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-md w-full"
-            >
-                <h3 className="text-xl font-bold mb-4">Renovar Cuenta Completa</h3>
-                <p className="mb-4">Ingresa el nuevo precio de venta para la renovación:</p>
-                
-                <div className="flex items-center gap-3 mb-6">
-                    <span className="text-slate-400">S/.</span>
-                    <input
-                        type="number"
-                        value={newRenewPrice}
-                        onChange={(e) => setNewRenewPrice(e.target.value ? Number(e.target.value) : '')}
-                        className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 w-full"
-                        placeholder="Precio de renovación"
-                        min="0"
-                        step="0.01"
-                        autoFocus
-                    />
-                </div>
-                
-                <div className="flex justify-end gap-3">
-                    <button 
-                        onClick={() => {
-                            setNewRenewPrice('');
-                            handleCloseModal();
-                        }} 
-                        className="px-4 py-2 rounded-lg border border-slate-600 hover:bg-slate-700"
-                    >
-                        Cancelar
-                    </button>
-                    <button 
-                        onClick={() => {
-                            if (!newRenewPrice) {
-                                toast.error('Ingresa un precio válido');
-                                return;
-                            }
-                            handleRenewAccount(modalState.account!.id, newRenewPrice);
-                            setNewRenewPrice('');
-                            handleCloseModal();
-                        }}
-                        className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 flex items-center gap-2"
-                    >
-                        <DollarSign size={16} />
-                        Confirmar Renovación
-                    </button>
-                </div>
-            </motion.div>
-        </div>
-    </AnimatePresence>
-)}
+                            <AnimatePresence>
+                                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                                    <motion.div 
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-md w-full"
+                                    >
+                                        <h3 className="text-xl font-bold mb-4">Renovar Cuenta Completa</h3>
+                                        <p className="mb-4">Ingresa el nuevo precio de venta para la renovación:</p>
+                                        
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <span className="text-slate-400">S/.</span>
+                                            <input
+                                                type="number"
+                                                value={newRenewPrice}
+                                                onChange={(e) => setNewRenewPrice(e.target.value ? Number(e.target.value) : '')}
+                                                className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 w-full"
+                                                placeholder="Precio de renovación"
+                                                min="0"
+                                                step="0.01"
+                                                autoFocus
+                                            />
+                                        </div>
+                                        
+                                        <div className="flex justify-end gap-3">
+                                            <button 
+                                                onClick={() => {
+                                                    setNewRenewPrice('');
+                                                    handleCloseModal();
+                                                }} 
+                                                className="px-4 py-2 rounded-lg border border-slate-600 hover:bg-slate-700"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button 
+                                                onClick={() => {
+                                                    if (!newRenewPrice) {
+                                                        toast.error('Ingresa un precio válido');
+                                                        return;
+                                                    }
+                                                    handleRenewAccount(modalState.account!.id, newRenewPrice);
+                                                    setNewRenewPrice('');
+                                                    handleCloseModal();
+                                                }}
+                                                className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 flex items-center gap-2"
+                                            >
+                                                <DollarSign size={16} />
+                                                Confirmar Renovación
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                </div>
+                            </AnimatePresence>
+                        )}
                     </>
                 )}
             </div>
-            
-            {/* Estilos globales */}
+              {/* Estilos globales */}
             <style jsx global>{`
                 .label-style { 
                     display: block; 

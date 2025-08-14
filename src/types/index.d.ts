@@ -57,6 +57,7 @@ export interface TopCliente {
 export interface PerfilVencido {
   id: number;
   nombrePerfil: string;
+  cuentaId: number; 
   clienteId: number;
   correoCuenta: string;
   contraseña: string;

@@ -1,14 +1,17 @@
 'use client';
 
 import { WhatsAppIcon, getStatusBadge } from './ui/ui-elements';
-import { useState, useMemo } from 'react';
+// --- CAMBIO 1: Se añaden 'useEffect' y 'useState' para manejar la carga de datos y el estado. ---
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DollarSign, Eye, X, User as UserIcon, KeyRound, Info, Calendar, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
-import { getAllReportes } from '@/services/reporteCuentaService';
+// --- CAMBIO 2: Se importa el servicio 'getAllCuentas' y el tipo 'Cuenta'. ---
+import { getAllCuentas } from '@/services/cuentaService';
+import { Cuenta } from '@/types'; // Asegúrate de que la ruta a tus tipos sea correcta
 
-// --- Tipos Locales ---
+// --- Tipos (sin cambios) ---
 enum StatusCuenta { 
     ACTIVO = "ACTIVO", 
     VENCIDO = "VENCIDO", 
@@ -16,22 +19,16 @@ enum StatusCuenta {
     REPORTADO = "REPORTADO", 
     SINUSAR = "SINUSAR" 
 }
-
-interface ReporteCuenta {
+interface PerfilVencido {
     id: number;
     cuentaId: number;
     correoCuenta: string;
-}
-
-interface PerfilVencido {
-    id: number;
     nombrePerfil: string;
     clienteId: number;
     nombreCliente: string;
     fechaInicio: string;
     fechaRenovacion: string;
     precioVenta: number;
-    correoCuenta: string;
     urlImg: string;
     numero: string;
     pin: string;
@@ -45,24 +42,21 @@ interface Cliente {
     numero: string;
     linkWhatsapp?: string;
 }
-
 interface PerfilesVencidosTableProps {
     perfiles: PerfilVencido[];
     clientes: Cliente[];
     onRenewProfile: (perfilId: number, nuevoPrecio: number) => Promise<void>;
 }
 
-// --- MODAL DE DETALLES ---
+// --- MODAL DE DETALLES (sin cambios) ---
 const ProfileDetailModal = ({ perfil, onClose }: { perfil: PerfilVencido | null; onClose: () => void; }) => {
     if (!perfil) return null;
-
     const DetailItem = ({ label, value, className = '' }: { label: string; value: React.ReactNode; className?: string }) => (
         <div className={className}>
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
             <p className="font-medium text-white">{value}</p>
         </div>
     );
-
     return (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <motion.div 
@@ -123,6 +117,38 @@ export const PerfilesVencidosTable = ({
     const [renewingProfileId, setRenewingProfileId] = useState<number | null>(null);
     const [detailModalOpen, setDetailModalOpen] = useState<PerfilVencido | null>(null);
     
+    // --- CAMBIO 3: Nuevo estado para almacenar los correos de cuentas reportadas y estado de carga. ---
+    const [reportedEmails, setReportedEmails] = useState<string[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // --- CAMBIO 4: 'useEffect' para cargar las cuentas y filtrar las reportadas al montar el componente. ---
+    useEffect(() => {
+        const fetchReportedAccounts = async () => {
+            try {
+                const allAccounts = await getAllCuentas();
+                const reported = allAccounts
+                    .filter(account => account.status === StatusCuenta.REPORTADO)
+                    .map(account => account.correo);
+                setReportedEmails(reported);
+            } catch (error) {
+                console.error("Error al obtener cuentas reportadas:", error);
+                toast.error("No se pudo verificar el estado de las cuentas.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchReportedAccounts();
+    }, []); // El array vacío asegura que se ejecute solo una vez.
+
+    // --- CAMBIO 5: 'useMemo' para crear una lista de perfiles filtrada, excluyendo los de cuentas reportadas. ---
+    const filteredPerfiles = useMemo(() => {
+        if (isLoading) {
+            return []; // Retorna un array vacío mientras carga
+        }
+        return perfiles.filter(perfil => !reportedEmails.includes(perfil.correoCuenta));
+    }, [perfiles, reportedEmails, isLoading]);
+
     const displayDate = (dateString: string | null) => {
         if (!dateString) return 'N/A';
         const date = new Date(dateString.replace(/-/g, '/'));
@@ -144,27 +170,11 @@ export const PerfilesVencidosTable = ({
         return `${baseLink}${separator}text=${encodedMessage}`;
     };
 
-    const handleAttemptRenew = async (perfil: PerfilVencido) => {
-        const loadingToast = toast.loading('Verificando estado de la cuenta...');
-        try {
-            // CORRECCIÓN: Se añade 'as unknown as ReporteCuenta[]' para resolver el conflicto de tipos estricto.
-            const allReports = await getAllReportes() as unknown as ReporteCuenta[];
-            const hasReport = allReports.some(report => report.correoCuenta === perfil.correoCuenta);
-            
-            toast.dismiss(loadingToast);
-
-            if (hasReport) {
-                toast.error('Esta cuenta tiene un reporte activo y no puede ser renovada.', {
-                    icon: <AlertTriangle className="text-yellow-400" />,
-                });
-            } else {
-                setRenewingProfileId(perfil.id);
-            }
-        } catch (error) {
-            toast.dismiss(loadingToast);
-            toast.error('No se pudo verificar el estado de la cuenta.');
-            console.error("Error fetching reports:", error);
-        }
+    // --- CAMBIO 6: Se simplifica 'handleAttemptRenew'. La verificación de reporte ya no es necesaria aquí. ---
+    const handleAttemptRenew = (perfil: PerfilVencido) => {
+        // La verificación de reportes ya se hizo al filtrar la lista `filteredPerfiles`.
+        // Si el botón es visible, la cuenta NO está reportada.
+        setRenewingProfileId(perfil.id);
     };
 
     const handleRenewClick = async (perfilId: number, nuevoPrecio: number) => {
@@ -185,8 +195,13 @@ export const PerfilesVencidosTable = ({
         }
     };
 
-    if (perfiles.length === 0) {
-        return <p className="text-center py-10 text-slate-500">No hay perfiles individuales vencidos.</p>;
+    // --- CAMBIO 7: Se añade un estado de carga y se usa la lista filtrada. ---
+    if (isLoading) {
+        return <p className="text-center py-10 text-slate-500">Verificando estados de cuenta...</p>;
+    }
+    
+    if (filteredPerfiles.length === 0) {
+        return <p className="text-center py-10 text-slate-500">No hay perfiles individuales vencidos para mostrar.</p>;
     }
 
     return (
@@ -251,7 +266,8 @@ export const PerfilesVencidosTable = ({
                         </tr>
                     </thead>
                     <tbody className="text-slate-200">
-                        {perfiles.map((perfil) => {
+                        {/* --- CAMBIO 8: Se itera sobre 'filteredPerfiles' en lugar de 'perfiles'. --- */}
+                        {filteredPerfiles.map((perfil) => {
                             const client = clientes.find(c => c.id === perfil.clienteId);
                             return (
                                 <tr key={perfil.id} className="border-b border-slate-700 hover:bg-slate-800 transition-colors">
@@ -266,7 +282,7 @@ export const PerfilesVencidosTable = ({
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">                                    
+                                        <div className="flex items-center gap-3">                                        
                                             <div className="flex flex-col gap-1 font-medium">
                                                 <div>{perfil.nombreCliente || 'N/A'}</div>
                                                 <div className='text-slate-400 text-xs font-mono'>Número: {perfil.numero || 'N/A'}</div>

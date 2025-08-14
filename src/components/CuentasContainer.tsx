@@ -14,7 +14,7 @@ import { getAllClientes } from '../services/clienteService';
 
 // --- COMPONENTES HIJOS (Importados) ---
 import { CuentasToolbar } from './CuentasToolbar';
-import { CuentasTable, ColumnDefinition } from './CuentasTable';
+import { CuentasTable } from './CuentasTable';
 import { PerfilesVencidosTable } from './PerfilesVencidosTable';
 import { AccountFormModal } from './modals/AccountFormModal';
 import { AssignModal } from './modals/AssignModal';
@@ -24,6 +24,7 @@ import { AccountDetailModal } from './modals/AccountDetailModal';
 import { ChangeAccountModal } from './modals/ChangeAccountModal';
 import { Tooltip, getStatusBadge } from './ui/ui-elements';
 import { getAllUsers } from '@/services/userService';
+import { PerfilVencido } from '@/types';
 
 // --- DEFINICIONES DE TIPOS ---
 export enum StatusCuenta {
@@ -50,12 +51,7 @@ export interface Cliente {
     id: number; nombre: string; apellido: string; numero: string; 
     correo?: string; tipoCliente: TipoCliente; linkWhatsapp?: string;
 }
-export interface PerfilVencido {
-    id: number; nombrePerfil: string; clienteId: number; 
-    nombreCliente: string; fechaInicio: string; 
-    fechaRenovacion: string; precioVenta: number; correoCuenta: string; urlImg: string;
-    numero: string;  pin: string;
-}
+
 export interface User {
     id: number;
     nombre: string;
